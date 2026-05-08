@@ -1,0 +1,11 @@
+venv/
+__pycache__/
+*.pyc
+.env
+data/*
+!data/legal_docs/
+!data/legal_docs/README.md
+*.log
+.DS_Store
+.idea/
+.vscode/

@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LawyerChat Retrieval</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f5f7fb;
+      --surface: #ffffff;
+      --text: #182235;
+      --muted: #68758a;
+      --border: #d9e0ea;
+      --accent: #1d6f8f;
+      --accent-dark: #15516a;
+      --danger: #a83232;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Arial, Helvetica, sans-serif;
+      line-height: 1.5;
+    }
+
+    main {
+      width: min(960px, calc(100% - 32px));
+      margin: 32px auto;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: 32px;
+      font-weight: 700;
+    }
+
+    .subtitle {
+      margin: 0 0 24px;
+      color: var(--muted);
+    }
+
+    .panel,
+    .result {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 700;
+    }
+
+    textarea,
+    input {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 12px;
+      font: inherit;
+      background: #fff;
+      color: var(--text);
+    }
+
+    textarea {
+      min-height: 120px;
+      resize: vertical;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: minmax(120px, 180px) auto;
+      gap: 16px;
+      align-items: end;
+      margin-top: 16px;
+    }
+
+    button {
+      border: 0;
+      border-radius: 6px;
+      padding: 12px 18px;
+      background: var(--accent);
+      color: #fff;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: var(--accent-dark);
+    }
+
+    button:disabled {
+      cursor: wait;
+      opacity: 0.7;
+    }
+
+    .status {
+      margin: 20px 0;
+      color: var(--muted);
+    }
+
+    .error {
+      color: var(--danger);
+    }
+
+    .results {
+      display: grid;
+      gap: 16px;
+      margin-top: 16px;
+    }
+
+    .result-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 12px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .filename {
+      color: var(--text);
+      font-weight: 700;
+    }
+
+    pre {
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      margin: 0;
+      font: inherit;
+    }
+
+    @media (max-width: 640px) {
+      main {
+        width: min(100% - 24px, 960px);
+        margin: 20px auto;
+      }
+
+      h1 {
+        font-size: 26px;
+      }
+
+      .row {
+        grid-template-columns: 1fr;
+      }
+
+      .result-header {
+        display: block;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>LawyerChat Retrieval</h1>
+    <p class="subtitle">Семантический поиск по вручную загруженным юридическим `.txt` документам.</p>
+
+    <section class="panel">
+      <form id="searchForm">
+        <label for="query">Вопрос</label>
+        <textarea id="query" name="query" placeholder="Например: Какие основания для увольнения работника?" required></textarea>
+
+        <div class="row">
+          <div>
+            <label for="topK">Top K</label>
+            <input id="topK" name="topK" type="number" min="1" max="20" value="5">
+          </div>
+          <button id="submitButton" type="submit">Найти фрагменты</button>
+        </div>
+      </form>
+    </section>
+
+    <div id="status" class="status"></div>
+    <section id="results" class="results" aria-live="polite"></section>
+  </main>
+
+  <script>
+    const form = document.getElementById("searchForm");
+    const queryInput = document.getElementById("query");
+    const topKInput = document.getElementById("topK");
+    const statusEl = document.getElementById("status");
+    const resultsEl = document.getElementById("results");
+    const submitButton = document.getElementById("submitButton");
+
+    function setStatus(message, isError = false) {
+      statusEl.textContent = message;
+      statusEl.className = isError ? "status error" : "status";
+    }
+
+    function renderResults(data) {
+      setStatus(`${data.note} Найдено фрагментов: ${data.total_results}.`);
+      resultsEl.innerHTML = "";
+
+      data.results.forEach((item) => {
+        const article = document.createElement("article");
+        article.className = "result";
+
+        const header = document.createElement("div");
+        header.className = "result-header";
+        header.innerHTML = `
+          <span><span class="filename"></span> · chunk #${item.chunk_index}</span>
+          <span>distance: ${Number(item.distance).toFixed(6)}</span>
+        `;
+        header.querySelector(".filename").textContent = item.filename;
+
+        const content = document.createElement("pre");
+        content.textContent = item.content;
+
+        article.appendChild(header);
+        article.appendChild(content);
+        resultsEl.appendChild(article);
+      });
+    }
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      resultsEl.innerHTML = "";
+      submitButton.disabled = true;
+      setStatus("Идет поиск...");
+
+      try {
+        const response = await fetch("http://localhost:8000/api/search", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            query: queryInput.value,
+            top_k: Number(topKInput.value)
+          })
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(errorText || `HTTP ${response.status}`);
+        }
+
+        const data = await response.json();
+        renderResults(data);
+      } catch (error) {
+        setStatus(`Ошибка поиска: ${error.message}`, true);
+      } finally {
+        submitButton.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>

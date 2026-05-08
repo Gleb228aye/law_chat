@@ -22,6 +22,8 @@ class ChunkItem(BaseModel):
     document_id: int
     chunk_index: int
     content: str
+    article_number: str | None = None
+    article_title: str | None = None
     created_at: datetime
 
 

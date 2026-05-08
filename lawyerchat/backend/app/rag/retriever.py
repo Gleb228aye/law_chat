@@ -24,7 +24,10 @@ class Retriever:
                 documents.filename AS filename,
                 chunks.chunk_index AS chunk_index,
                 chunks.content AS content,
-                chunks.embedding <=> CAST(:query_embedding AS vector) AS distance
+                chunks.article_number AS article_number,
+                chunks.article_title AS article_title,
+                chunks.embedding <=> CAST(:query_embedding AS vector) AS distance,
+                1 - (chunks.embedding <=> CAST(:query_embedding AS vector)) AS similarity
             FROM chunks
             JOIN documents ON documents.id = chunks.document_id
             ORDER BY chunks.embedding <=> CAST(:query_embedding AS vector)
@@ -43,7 +46,10 @@ class Retriever:
                 "filename": row["filename"],
                 "chunk_index": row["chunk_index"],
                 "content": row["content"],
+                "article_number": row["article_number"],
+                "article_title": row["article_title"],
                 "distance": float(row["distance"]),
+                "similarity": float(row["similarity"]),
             }
             for row in rows
         ]

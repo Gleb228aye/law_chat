@@ -6,7 +6,7 @@ from app.config import settings
 from app.models.chunk import Chunk
 from app.models.document import Document
 from app.rag.embedder import Embedder
-from app.rag.splitter import split_text
+from app.rag.splitter import split_legal_text
 
 
 def default_docs_dir() -> Path:
@@ -48,12 +48,11 @@ def ingest_documents(db: Session, docs_dir: str | Path | None = None) -> dict:
                 stats["skipped_files"].append(file_path.name)
                 continue
 
-            chunks = split_text(
+            chunk_items = split_legal_text(
                 text,
                 chunk_size=settings.chunk_size,
-                chunk_overlap=settings.chunk_overlap,
             )
-            if not chunks:
+            if not chunk_items:
                 stats["skipped_files"].append(file_path.name)
                 continue
 
@@ -72,20 +71,23 @@ def ingest_documents(db: Session, docs_dir: str | Path | None = None) -> dict:
             db.add(document)
             db.flush()
 
-            embeddings = embedder.embed_texts(chunks)
-            for index, (chunk_text, embedding) in enumerate(zip(chunks, embeddings)):
+            texts = [item["content"] for item in chunk_items]
+            embeddings = embedder.embed_texts(texts)
+            for index, (item, embedding) in enumerate(zip(chunk_items, embeddings)):
                 db.add(
                     Chunk(
                         document_id=document.id,
                         chunk_index=index,
-                        content=chunk_text,
+                        content=item["content"],
+                        article_number=item.get("article_number"),
+                        article_title=item.get("article_title"),
                         embedding=embedding,
                     )
                 )
 
             stats["files_processed"] += 1
             stats["documents_created"] += 1
-            stats["chunks_created"] += len(chunks)
+            stats["chunks_created"] += len(chunk_items)
             stats["processed_files"].append(file_path.name)
 
         db.commit()

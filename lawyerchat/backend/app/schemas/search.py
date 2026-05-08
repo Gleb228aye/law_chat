@@ -19,7 +19,10 @@ class SearchResult(BaseModel):
     filename: str
     chunk_index: int
     content: str
+    article_number: str | None = None
+    article_title: str | None = None
     distance: float
+    similarity: float
 
 
 class SearchResponse(BaseModel):

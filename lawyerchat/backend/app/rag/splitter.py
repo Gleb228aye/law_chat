@@ -1,16 +1,109 @@
 import re
 
 ARTICLE_PATTERN = re.compile(
-    r"^[ \t]*Статья[ \t]+(?P<number>\d+(?:\.\d+)*)(?:\.[ \t]*(?P<title>[^\n]*))?$",
+    r"^[ \t]*Статья[ \t]+(?P<number>\d+(?:\.\d+)*)(?:\.[ \t]*(?P<title>[^\n]*))?[ \t]*$",
     re.IGNORECASE | re.MULTILINE,
 )
+PAGE_BREAK_PATTERN = re.compile(r"[\f\v\u0085\u2028]")
+STRUCTURE_HEADING_PATTERN = re.compile(
+    r"^(?:ЧАСТЬ|РАЗДЕЛ|ГЛАВА)\b",
+    re.IGNORECASE,
+)
+TITLE_WRAP_MIN_LENGTH = 60
+TITLE_CONTINUATION_TOKENS = {
+    "в",
+    "во",
+    "для",
+    "и",
+    "из",
+    "к",
+    "на",
+    "о",
+    "об",
+    "от",
+    "по",
+    "при",
+    "с",
+    "со",
+}
 
 
 def _normalize_text(text: str) -> str:
+    text = text.replace("\ufeff", "")
     text = text.replace("\r\n", "\n").replace("\r", "\n")
+    text = text.replace("\u2029", "\n\n")
+    text = PAGE_BREAK_PATTERN.sub("\n", text)
     text = re.sub(r"[ \t]+", " ", text)
+    text = re.sub(r" *\n *", "\n", text)
     text = re.sub(r"\n{3,}", "\n\n", text)
     return text.strip()
+
+
+def _normalize_title_line(line: str) -> str:
+    return re.sub(r"\s+", " ", line).strip()
+
+
+def _first_alpha_is_lower(line: str) -> bool:
+    for character in line:
+        if character.isalpha():
+            return character.islower()
+    return False
+
+
+def _title_continuation_is_safe(previous_line: str, next_line: str) -> bool:
+    if not next_line:
+        return False
+    if ARTICLE_PATTERN.match(next_line) or STRUCTURE_HEADING_PATTERN.match(next_line):
+        return False
+    if next_line.endswith((".", ":", ";")):
+        return False
+
+    previous_token = previous_line.rstrip(" -").rsplit(" ", maxsplit=1)[-1].lower()
+    title_wraps = (
+        len(previous_line) >= TITLE_WRAP_MIN_LENGTH
+        or previous_line.endswith("-")
+        or previous_token in TITLE_CONTINUATION_TOKENS
+    )
+    return title_wraps and (
+        _first_alpha_is_lower(next_line)
+        or previous_token in TITLE_CONTINUATION_TOKENS
+    )
+
+
+def _extract_article_title(text: str, match: re.Match[str], article_end: int) -> str | None:
+    title_lines: list[str] = []
+    inline_title = _normalize_title_line(match.group("title") or "")
+    if inline_title:
+        title_lines.append(inline_title)
+
+    cursor = match.end()
+    continuation_lines = 0
+    while cursor < article_end and continuation_lines < 2:
+        if text[cursor] != "\n":
+            break
+
+        next_line_start = cursor + 1
+        next_line_end = text.find("\n", next_line_start, article_end)
+        if next_line_end == -1:
+            next_line_end = article_end
+
+        next_line = _normalize_title_line(text[next_line_start:next_line_end])
+        if not next_line:
+            break
+
+        if title_lines:
+            if not _title_continuation_is_safe(title_lines[-1], next_line):
+                break
+        elif ARTICLE_PATTERN.match(next_line) or STRUCTURE_HEADING_PATTERN.match(next_line):
+            break
+        elif next_line.endswith((".", ":", ";")):
+            break
+
+        title_lines.append(next_line)
+        continuation_lines += 1
+        cursor = next_line_end
+
+    return " ".join(title_lines) or None
 
 
 def _split_long_paragraph(paragraph: str, chunk_size: int) -> list[str]:
@@ -166,7 +259,7 @@ def split_legal_text(
             continue
 
         article_number = match.group("number")
-        article_title = (match.group("title") or "").strip() or None
+        article_title = _extract_article_title(normalized, match, article_end)
 
         if len(article_text) <= chunk_size:
             chunks.append(

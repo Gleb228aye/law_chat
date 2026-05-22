@@ -2,6 +2,7 @@ venv/
 __pycache__/
 *.pyc
 .env
+reports/*.csv
 data/*
 !data/legal_docs/
 !data/legal_docs/README.md

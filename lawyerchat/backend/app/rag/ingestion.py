@@ -51,6 +51,7 @@ def ingest_documents(db: Session, docs_dir: str | Path | None = None) -> dict:
             chunk_items = split_legal_text(
                 text,
                 chunk_size=settings.chunk_size,
+                chunk_overlap=settings.chunk_overlap,
             )
             if not chunk_items:
                 stats["skipped_files"].append(file_path.name)

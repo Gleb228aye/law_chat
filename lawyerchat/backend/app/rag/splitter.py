@@ -106,6 +106,19 @@ def _extract_article_title(text: str, match: re.Match[str], article_end: int) ->
     return " ".join(title_lines) or None
 
 
+def _merge_article_heading_with_body(article_text: str) -> str:
+    paragraphs = [p.strip() for p in article_text.split("\n\n") if p.strip()]
+    if len(paragraphs) < 2:
+        return article_text
+
+    first_line = paragraphs[0].split("\n", maxsplit=1)[0]
+    if not ARTICLE_PATTERN.match(first_line):
+        return article_text
+
+    merged_first = f"{paragraphs[0]}\n{paragraphs[1]}".strip()
+    return "\n\n".join([merged_first, *paragraphs[2:]])
+
+
 def _split_long_paragraph(paragraph: str, chunk_size: int) -> list[str]:
     parts: list[str] = []
     start = 0
@@ -220,6 +233,8 @@ def split_legal_text(
     if chunk_overlap >= chunk_size:
         raise ValueError("chunk_overlap must be less than chunk_size")
 
+    # Legal answers should start at natural text boundaries, not character tails.
+    legal_chunk_overlap = 0
     normalized = _normalize_text(text)
     if not normalized:
         return []
@@ -231,7 +246,7 @@ def split_legal_text(
             for chunk in split_text(
                 normalized,
                 chunk_size=chunk_size,
-                chunk_overlap=chunk_overlap,
+                chunk_overlap=legal_chunk_overlap,
             )
         ]
 
@@ -243,7 +258,7 @@ def split_legal_text(
             for chunk in split_text(
                 leading_text,
                 chunk_size=chunk_size,
-                chunk_overlap=chunk_overlap,
+                chunk_overlap=legal_chunk_overlap,
             )
         )
 
@@ -258,6 +273,7 @@ def split_legal_text(
         if not article_text:
             continue
 
+        article_text = _merge_article_heading_with_body(article_text)
         article_number = match.group("number")
         article_title = _extract_article_title(normalized, match, article_end)
 
@@ -274,7 +290,7 @@ def split_legal_text(
         article_parts = split_text(
             article_text,
             chunk_size=chunk_size,
-            chunk_overlap=chunk_overlap,
+            chunk_overlap=legal_chunk_overlap,
         )
         chunks.extend(
             _make_legal_chunk(

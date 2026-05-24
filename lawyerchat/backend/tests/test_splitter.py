@@ -66,6 +66,35 @@ class LegalSplitterTests(unittest.TestCase):
         first_article = next(chunk for chunk in chunks if chunk["article_number"] == "1")
         self.assertNotIn("Статья 2", first_article["content"])
 
+    def test_legal_overlap_does_not_create_word_fragments(self) -> None:
+        chunks = split_legal_text(
+            "Статья 2. Основные принципы правового регулирования\n"
+            + "Свобода труда и право на отдых гарантируются работникам. " * 12,
+            chunk_size=160,
+            chunk_overlap=80,
+        )
+
+        self.assertGreater(len(chunks), 1)
+        self.assertFalse(any(chunk["content"].startswith("а на отдых") for chunk in chunks))
+        self.assertFalse(any(chunk["content"].startswith("тношений") for chunk in chunks))
+
+    def test_wrapped_title_is_not_split_into_separate_heading_chunk(self) -> None:
+        chunks = split_legal_text(
+            "Статья 5. Трудовое законодательство и иные нормативные правовые акты, "
+            "содержащие нормы трудового\nправа\n\n"
+            "Регулирование трудовых отношений осуществляется настоящим Кодексом. "
+            "Нормы трудового права применяются с учетом федеральных законов.",
+            chunk_size=180,
+            chunk_overlap=0,
+        )
+
+        self.assertIn("Регулирование трудовых отношений", chunks[0]["content"])
+        self.assertFalse(
+            len(chunks) > 1
+            and chunks[0]["content"].startswith("Статья 5.")
+            and "Регулирование трудовых отношений" not in chunks[0]["content"]
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

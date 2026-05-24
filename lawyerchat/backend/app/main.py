@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import documents, search
+from app.api import chat, documents, search
 from app.db import check_database_connection, check_pgvector_extension, create_tables
 
 
@@ -17,6 +17,7 @@ app.add_middleware(
 
 app.include_router(search.router, prefix="/api", tags=["search"])
 app.include_router(documents.router, prefix="/api", tags=["documents"])
+app.include_router(chat.router, prefix="/api", tags=["chat"])
 
 
 @app.on_event("startup")

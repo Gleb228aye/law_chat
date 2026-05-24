@@ -9,3 +9,4 @@ pgvector
 sentence-transformers
 numpy
 python-multipart
+openai

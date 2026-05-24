@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from pgvector.sqlalchemy import Vector
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import relationship
 
@@ -16,6 +17,7 @@ class Chunk(Base):
     content = Column(Text, nullable=False)
     article_number = Column(String, nullable=True, index=True)
     article_title = Column(String, nullable=True)
+    referenced_articles = Column(JSONB, nullable=False, default=list)
     embedding = Column(Vector(384), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 

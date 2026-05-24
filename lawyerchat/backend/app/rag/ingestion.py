@@ -6,6 +6,7 @@ from app.config import settings
 from app.models.chunk import Chunk
 from app.models.document import Document
 from app.rag.embedder import Embedder
+from app.rag.references import extract_referenced_articles
 from app.rag.splitter import split_legal_text
 
 
@@ -82,6 +83,10 @@ def ingest_documents(db: Session, docs_dir: str | Path | None = None) -> dict:
                         content=item["content"],
                         article_number=item.get("article_number"),
                         article_title=item.get("article_title"),
+                        referenced_articles=extract_referenced_articles(
+                            item["content"],
+                            current_article_number=item.get("article_number"),
+                        ),
                         embedding=embedding,
                     )
                 )

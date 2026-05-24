@@ -44,3 +44,14 @@ def create_tables() -> None:
     from app.models.document import Document  # noqa: F401
 
     Base.metadata.create_all(bind=engine)
+    if engine.dialect.name == "postgresql":
+        with engine.begin() as connection:
+            connection.execute(
+                text(
+                    """
+                    ALTER TABLE chunks
+                    ADD COLUMN IF NOT EXISTS referenced_articles JSONB NOT NULL
+                    DEFAULT '[]'::jsonb
+                    """
+                )
+            )

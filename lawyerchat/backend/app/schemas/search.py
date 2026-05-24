@@ -21,6 +21,7 @@ class SearchResult(BaseModel):
     content: str
     article_number: str | None = None
     article_title: str | None = None
+    referenced_articles: list[str] = Field(default_factory=list)
     distance: float
     similarity: float
 

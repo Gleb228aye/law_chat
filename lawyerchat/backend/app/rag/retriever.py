@@ -26,6 +26,7 @@ class Retriever:
                 chunks.content AS content,
                 chunks.article_number AS article_number,
                 chunks.article_title AS article_title,
+                chunks.referenced_articles AS referenced_articles,
                 chunks.embedding <=> CAST(:query_embedding AS vector) AS distance,
                 1 - (chunks.embedding <=> CAST(:query_embedding AS vector)) AS similarity
             FROM chunks
@@ -48,6 +49,7 @@ class Retriever:
                 "content": row["content"],
                 "article_number": row["article_number"],
                 "article_title": row["article_title"],
+                "referenced_articles": row["referenced_articles"] or [],
                 "distance": float(row["distance"]),
                 "similarity": float(row["similarity"]),
             }

@@ -4,6 +4,7 @@ import re
 from pathlib import Path
 from statistics import mean, median
 
+from app.rag.references import extract_referenced_articles
 from app.rag.splitter import split_legal_text
 
 
@@ -12,6 +13,7 @@ CSV_FIELDS = (
     "chunk_index",
     "article_number",
     "article_title",
+    "referenced_articles",
     "length",
     "start_text",
     "content",
@@ -72,11 +74,16 @@ def _write_csv(report_path: Path, chunks: list[dict]) -> None:
         writer.writeheader()
         for chunk_index, chunk in enumerate(chunks):
             content = chunk["content"]
+            referenced_articles = extract_referenced_articles(
+                content,
+                current_article_number=chunk.get("article_number"),
+            )
             writer.writerow(
                 {
                     "chunk_index": chunk_index,
                     "article_number": chunk.get("article_number") or "",
                     "article_title": chunk.get("article_title") or "",
+                    "referenced_articles": ";".join(referenced_articles),
                     "length": len(content),
                     "start_text": _preview(content),
                     "content": content,
@@ -89,6 +96,15 @@ def _print_stats(file_path: Path, chunks: list[dict], report_path: Path) -> None
     with_article = sum(bool(chunk.get("article_number")) for chunk in chunks)
     page_breaks = sum("\f" in chunk["content"] for chunk in chunks)
     suspicious = sum(_has_suspicious_article_number(chunk) for chunk in chunks)
+    with_references = sum(
+        bool(
+            extract_referenced_articles(
+                chunk["content"],
+                current_article_number=chunk.get("article_number"),
+            )
+        )
+        for chunk in chunks
+    )
 
     print(f"File: {file_path.name}")
     print(f"  chunks: {len(chunks)}")
@@ -103,6 +119,7 @@ def _print_stats(file_path: Path, chunks: list[dict], report_path: Path) -> None
     else:
         print("  length_min_avg_median_max: 0 / 0 / 0 / 0")
     print(f"  chunks_with_form_feed: {page_breaks}")
+    print(f"  chunks_with_referenced_articles: {with_references}")
     print(f"  potentially_wrong_article_number: {suspicious}")
     print(f"  csv_report: {report_path}")
 

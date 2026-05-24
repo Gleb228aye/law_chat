@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class DocumentItem(BaseModel):
@@ -24,6 +24,7 @@ class ChunkItem(BaseModel):
     content: str
     article_number: str | None = None
     article_title: str | None = None
+    referenced_articles: list[str] = Field(default_factory=list)
     created_at: datetime
 
 

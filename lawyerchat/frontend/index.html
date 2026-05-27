@@ -59,6 +59,24 @@
           <textarea id="queryInput" name="query" placeholder="Например: какие основания для увольнения работника?" required></textarea>
         </div>
 
+        <fieldset class="mode-group" aria-label="Режим ответа">
+          <legend>Режим ответа</legend>
+          <label class="mode-option">
+            <input type="radio" name="answerMode" value="retrieval" checked>
+            <span>
+              <strong>Только поиск фрагментов</strong>
+              <small>Показать найденные chunks без генерации ответа</small>
+            </span>
+          </label>
+          <label class="mode-option">
+            <input type="radio" name="answerMode" value="chat">
+            <span>
+              <strong>Ответ на основе найденных фрагментов</strong>
+              <small>Сформировать ответ через backend RAG-режим</small>
+            </span>
+          </label>
+        </fieldset>
+
         <div class="form-row">
           <div class="field top-k-field">
             <label for="topKInput">Количество фрагментов</label>
@@ -72,8 +90,8 @@
     <section class="panel" aria-labelledby="results-title">
       <div class="section-header">
         <div>
-          <h2 id="results-title">Результаты поиска</h2>
-          <p class="section-note">Найденные фрагменты отображаются без генерации ответа.</p>
+          <h2 id="results-title">Найденные фрагменты</h2>
+          <p id="resultsDescription" class="section-note">Фрагменты отображаются без генерации ответа.</p>
         </div>
       </div>
       <div id="searchStatus" class="message muted" aria-live="polite">Поиск еще не выполнялся.</div>

@@ -251,6 +251,55 @@ dd,
   gap: 16px;
 }
 
+.mode-group {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px;
+  background: var(--surface-soft);
+}
+
+.mode-group legend {
+  padding: 0 6px;
+  color: var(--text);
+  font-weight: 700;
+}
+
+.mode-option {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 10px;
+  align-items: start;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  background: #ffffff;
+  cursor: pointer;
+}
+
+.mode-option:has(input:checked) {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.mode-option input {
+  width: auto;
+  margin-top: 4px;
+  accent-color: var(--accent);
+}
+
+.mode-option span {
+  display: grid;
+  gap: 2px;
+}
+
+.mode-option small {
+  color: var(--muted);
+  line-height: 1.35;
+}
+
 .field {
   display: grid;
   gap: 7px;
@@ -262,7 +311,7 @@ label {
 }
 
 textarea,
-input {
+input:not([type="radio"]) {
   width: 100%;
   border: 1px solid var(--border);
   border-radius: 6px;
@@ -272,7 +321,7 @@ input {
 }
 
 textarea:focus,
-input:focus {
+input:not([type="radio"]):focus {
   outline: 3px solid rgba(23, 107, 135, 0.16);
   border-color: var(--accent);
 }
@@ -297,6 +346,31 @@ textarea {
   margin: 12px 0 0;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
+}
+
+.answer-card {
+  border-color: rgba(23, 107, 135, 0.35);
+  background: #fbfefe;
+}
+
+.answer-content {
+  margin-top: 12px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 16px;
+}
+
+.sources-title {
+  margin: 8px 0 0;
+  font-size: 18px;
+}
+
+.source-card {
+  background: var(--surface-soft);
+}
+
+.source-meta {
+  margin-top: 10px;
 }
 
 .compact-list {

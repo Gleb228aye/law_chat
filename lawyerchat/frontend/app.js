@@ -13,7 +13,10 @@ const documentsList = document.getElementById("documentsList");
 const searchForm = document.getElementById("searchForm");
 const queryInput = document.getElementById("queryInput");
 const topKInput = document.getElementById("topKInput");
+const modeInputs = document.querySelectorAll('input[name="answerMode"]');
 const searchButton = document.getElementById("searchButton");
+const resultsTitle = document.getElementById("results-title");
+const resultsDescription = document.getElementById("resultsDescription");
 const searchStatus = document.getElementById("searchStatus");
 const searchMeta = document.getElementById("searchMeta");
 const resultsList = document.getElementById("resultsList");
@@ -35,7 +38,9 @@ async function apiRequest(path, options = {}) {
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(`HTTP ${response.status}${errorText ? `: ${errorText}` : ""}`);
+    const error = new Error(`HTTP ${response.status}${errorText ? `: ${errorText}` : ""}`);
+    error.status = response.status;
+    throw error;
   }
 
   if (response.status === 204) {
@@ -153,6 +158,26 @@ function normalizeTopK(value) {
   }
 
   return Math.min(20, Math.max(1, number));
+}
+
+function getSelectedMode() {
+  const selected = document.querySelector('input[name="answerMode"]:checked');
+  return selected?.value === "chat" ? "chat" : "retrieval";
+}
+
+function updateSearchModeText() {
+  const mode = getSelectedMode();
+
+  if (mode === "chat") {
+    searchButton.textContent = "Сформировать ответ";
+    resultsTitle.textContent = "Ответ системы";
+    resultsDescription.textContent = "Ответ сформирован на основе найденных фрагментов и не является юридической консультацией.";
+    return;
+  }
+
+  searchButton.textContent = "Найти фрагменты";
+  resultsTitle.textContent = "Найденные фрагменты";
+  resultsDescription.textContent = "Фрагменты отображаются без генерации ответа.";
 }
 
 async function checkHealth() {
@@ -364,6 +389,7 @@ async function searchDocuments(event) {
 
   const query = queryInput.value.trim();
   const topK = normalizeTopK(topKInput.value);
+  const mode = getSelectedMode();
   topKInput.value = topK;
 
   clearElement(resultsList);
@@ -377,10 +403,14 @@ async function searchDocuments(event) {
   }
 
   searchButton.disabled = true;
-  setMessage(searchStatus, "Ищем фрагменты...");
+  setMessage(
+    searchStatus,
+    mode === "chat" ? "Формируем ответ на основе найденных фрагментов..." : "Ищем фрагменты..."
+  );
 
   try {
-    const data = await apiRequest("/api/search", {
+    const endpoint = mode === "chat" ? "/api/chat" : "/api/search";
+    const data = await apiRequest(endpoint, {
       method: "POST",
       body: JSON.stringify({
         query,
@@ -388,15 +418,27 @@ async function searchDocuments(event) {
       })
     });
 
-    renderSearchResults(data || {});
+    if (mode === "chat") {
+      renderChatAnswer(data || {});
+    } else {
+      renderSearchResults(data || {});
+    }
   } catch (error) {
-    setMessage(searchStatus, error.message, true);
+    if (mode === "chat" && error.status === 503) {
+      setMessage(searchStatus, "LLM не настроена. Проверьте LLM_API_KEY в backend/.env", true);
+    } else {
+      setMessage(searchStatus, error.message, true);
+    }
   } finally {
     searchButton.disabled = false;
+    updateSearchModeText();
   }
 }
 
 function renderSearchResults(data) {
+  clearElement(resultsList);
+  clearElement(searchMeta);
+
   const results = Array.isArray(data.results) ? data.results : [];
 
   appendSummaryRow(searchMeta, "note", data.note);
@@ -462,6 +504,76 @@ function renderSearchResults(data) {
   });
 }
 
+function renderChatAnswer(data) {
+  clearElement(resultsList);
+  clearElement(searchMeta);
+
+  const sources = Array.isArray(data.sources) ? data.sources : [];
+
+  appendSummaryRow(searchMeta, "total_sources", data.total_sources ?? sources.length);
+  searchMeta.hidden = false;
+
+  const answerCard = document.createElement("article");
+  answerCard.className = "card answer-card";
+
+  const answerTitle = document.createElement("h3");
+  answerTitle.className = "card-title";
+  answerTitle.textContent = "Ответ";
+
+  const answerContent = document.createElement("div");
+  answerContent.className = "answer-content";
+  answerContent.textContent = data.answer || "Backend вернул пустой ответ.";
+
+  answerCard.append(answerTitle, answerContent);
+  resultsList.appendChild(answerCard);
+
+  const sourcesTitle = document.createElement("h3");
+  sourcesTitle.className = "sources-title";
+  sourcesTitle.textContent = "Источники";
+  resultsList.appendChild(sourcesTitle);
+
+  if (!sources.length) {
+    const empty = document.createElement("div");
+    empty.className = "message muted";
+    empty.textContent = "Источники не найдены.";
+    resultsList.appendChild(empty);
+    setMessage(searchStatus, "Ответ сформирован без источников.");
+    return;
+  }
+
+  setMessage(searchStatus, `Ответ сформирован. Источников: ${data.total_sources ?? sources.length}.`);
+
+  sources.forEach((source) => {
+    const card = document.createElement("article");
+    card.className = "card source-card";
+
+    const title = document.createElement("h4");
+    title.className = "card-title";
+    title.textContent = source.filename || "Документ без имени";
+    card.appendChild(title);
+
+    const meta = document.createElement("div");
+    meta.className = "card-meta source-meta";
+
+    appendInlineMeta(meta, `Фрагмент #${source.chunk_index ?? "без номера"}`);
+
+    if (source.article_number) {
+      appendInlineMeta(meta, `Статья: ${source.article_number}`);
+    }
+
+    if (source.article_title) {
+      appendInlineMeta(meta, source.article_title);
+    }
+
+    if (Array.isArray(source.referenced_articles) && source.referenced_articles.length) {
+      appendInlineMeta(meta, `Связанные статьи: ${source.referenced_articles.join(", ")}`);
+    }
+
+    card.appendChild(meta);
+    resultsList.appendChild(card);
+  });
+}
+
 function appendInlineMeta(container, value) {
   const item = document.createElement("span");
   item.textContent = value;
@@ -472,3 +584,5 @@ healthButton.addEventListener("click", checkHealth);
 documentsButton.addEventListener("click", loadDocuments);
 reindexButton.addEventListener("click", reindexDocuments);
 searchForm.addEventListener("submit", searchDocuments);
+modeInputs.forEach((input) => input.addEventListener("change", updateSearchModeText));
+updateSearchModeText();

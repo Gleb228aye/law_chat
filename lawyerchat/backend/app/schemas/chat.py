@@ -17,6 +17,12 @@ class ChatSource(BaseModel):
     filename: str | None = None
     article_number: str | None = None
     article_title: str | None = None
+    section_title: str | None = None
+    subsection_title: str | None = None
+    chapter_title: str | None = None
+    paragraph_title: str | None = None
+    source_format: str | None = None
+    source_filename: str | None = None
     chunk_index: int
     referenced_articles: list[str] = Field(default_factory=list)
 

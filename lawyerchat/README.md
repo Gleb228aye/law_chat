@@ -1,12 +1,12 @@
 # LawyerChat Retrieval MVP
 
-LawyerChat Retrieval MVP — учебное приложение для семантического поиска по вручную загруженным юридическим документам.
+LawyerChat Retrieval MVP — учебное приложение для семантического поиска и RAG-ответов по вручную загруженным юридическим документам.
 
-На первом этапе это не полноценный чат и не RAG с генерацией ответа. Приложение только индексирует локальные `.txt` документы, считает embeddings локальной моделью `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2` и возвращает наиболее релевантные фрагменты через API или простой frontend.
+Приложение индексирует локальные `.txt` и `.jsonl` документы, считает embeddings локальной моделью `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2` и возвращает релевантные фрагменты через API, RAG-чат или простой frontend.
 
 ## Важное предупреждение
 
-Система не является юридической консультацией. На первом этапе она только находит релевантные фрагменты документов. Генерация итогового ответа через LLM будет добавлена позднее.
+Система не является юридической консультацией. Она помогает искать релевантные фрагменты документов и формировать RAG-ответ, но итоговый текст нужно проверять по первоисточникам.
 
 ## Архитектура
 
@@ -14,7 +14,7 @@ LawyerChat Retrieval MVP — учебное приложение для сема
 - PostgreSQL + pgvector
 - SQLAlchemy ORM
 - `sentence-transformers` для локальных embeddings
-- локальные `.txt` документы в `backend/data/legal_docs/`
+- локальные `.txt` и `.jsonl` документы в `backend/data/legal_docs/`
 - статический frontend без React и сборки
 
 ## Запуск PostgreSQL
@@ -78,16 +78,30 @@ http://localhost:8000/health
 
 ## Добавление юридических документов
 
-Положите `.txt` файлы вручную в:
+Положите документы вручную в:
 
 ```text
 backend/data/legal_docs/
 ```
 
-Например:
+Поддерживаются два формата:
+
+- `.txt` — простой режим. Файл читается целиком и разбивается на чанки через `split_legal_text`.
+- `.jsonl` — рекомендуемый структурированный формат для юридического корпуса. Каждая строка считается отдельным готовым юридическим фрагментом и не смешивается с соседними строками.
+
+Примеры файлов:
 
 - `trudovoy_kodeks.txt`
 - `grazhdanskiy_kodeks.txt`
+- `example_legal_corpus.jsonl`
+
+Пример JSONL-строки:
+
+```json
+{"document_id":"tk_rf","document_title":"Трудовой кодекс Российской Федерации","filename":"trudovoy_kodeks.jsonl","section_title":"Раздел III. Трудовой договор","chapter_title":"Глава 13. Прекращение трудового договора","article_number":"80","article_title":"Расторжение трудового договора по инициативе работника","text":"Работник имеет право расторгнуть трудовой договор...","referenced_articles":[],"source_url":null}
+```
+
+Для JSONL в базу сохраняются существующие поля чанка: `content` из `text`, `article_number`, `article_title`, `referenced_articles` и `embedding`. Поля `section_title`, `chapter_title` и `source_url` можно держать в корпусе заранее: ingestion спокойно их прочитает, но пока не сохраняет в отдельные колонки.
 
 Документы не скачиваются автоматически и сайты не парсятся.
 
@@ -105,7 +119,13 @@ python -m scripts.ingest_documents
 POST http://localhost:8000/api/documents/reindex
 ```
 
-Индексация перечитывает `.txt` файлы, разбивает текст на чанки, считает embeddings и сохраняет данные в PostgreSQL + pgvector. Поле `chunks.embedding` имеет тип `vector(384)`.
+Или из Windows PowerShell при запущенном backend:
+
+```powershell
+Invoke-RestMethod -Method Post -Uri http://localhost:8000/api/documents/reindex
+```
+
+Индексация перечитывает `.txt` и `.jsonl` файлы, удаляет старый `Document` с тем же `filename`, считает embeddings только по тексту фрагмента и сохраняет данные в PostgreSQL + pgvector. Поле `chunks.embedding` имеет тип `vector(384)`.
 
 ## Поиск
 
@@ -206,6 +226,7 @@ docker compose up -d postgres
 - `GET /api/documents`
 - `GET /api/documents/{document_id}/chunks`
 - `POST /api/documents/reindex`
+- `POST /api/chat`
 
 ## Второй этап
 

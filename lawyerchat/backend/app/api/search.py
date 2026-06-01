@@ -26,7 +26,8 @@ def search_documents(request: SearchRequest, db: Session = Depends(get_db)):
             total_results=0,
             note=(
                 "В базе пока нет проиндексированных фрагментов. "
-                "Добавьте .txt документы в backend/data/legal_docs и запустите индексацию. "
+                "Добавьте .jsonl документы в backend/data/legal_docs "
+                "или конвертируйте HTML из backend/data/raw_html, затем запустите индексацию. "
                 + RETRIEVAL_NOTE
             ),
         )

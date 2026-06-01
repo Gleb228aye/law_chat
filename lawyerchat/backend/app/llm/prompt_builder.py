@@ -14,6 +14,12 @@ def _format_referenced_articles(referenced_articles: list[str] | None) -> str:
     return ", ".join(referenced_articles)
 
 
+def _format_optional_source_line(label: str, value: str | None) -> str | None:
+    if not value:
+        return None
+    return f"{label}: {value}"
+
+
 def build_rag_prompt(query: str, chunks: list[dict]) -> str:
     context_blocks: list[str] = []
     for index, chunk in enumerate(chunks, start=1):
@@ -22,19 +28,23 @@ def build_rag_prompt(query: str, chunks: list[dict]) -> str:
         referenced_articles = _format_referenced_articles(
             chunk.get("referenced_articles") or []
         )
+        source_lines = [
+            f"[Источник {index}]",
+            f"Файл: {chunk.get('filename') or 'не указан'}",
+            _format_optional_source_line("Исходный файл", chunk.get("source_filename")),
+            _format_optional_source_line("Раздел", chunk.get("section_title")),
+            _format_optional_source_line("Подраздел", chunk.get("subsection_title")),
+            _format_optional_source_line("Глава", chunk.get("chapter_title")),
+            _format_optional_source_line("Параграф", chunk.get("paragraph_title")),
+            f"Статья: {article_number}",
+            f"Название статьи: {article_title}",
+            f"chunk_index: {chunk.get('chunk_index')}",
+            f"Ссылки на статьи: {referenced_articles}",
+            "Текст:",
+            chunk.get("content") or "",
+        ]
         context_blocks.append(
-            "\n".join(
-                [
-                    f"[Источник {index}]",
-                    f"Файл: {chunk.get('filename') or 'не указан'}",
-                    f"Статья: {article_number}",
-                    f"Название статьи: {article_title}",
-                    f"chunk_index: {chunk.get('chunk_index')}",
-                    f"Ссылки на статьи: {referenced_articles}",
-                    "Текст:",
-                    chunk.get("content") or "",
-                ]
-            )
+            "\n".join(line for line in source_lines if line is not None)
         )
 
     context = "\n\n---\n\n".join(context_blocks) or "Контекст не найден."
@@ -62,6 +72,12 @@ def build_sources(chunks: list[dict]) -> list[dict]:
             "filename": chunk.get("filename"),
             "article_number": chunk.get("article_number"),
             "article_title": chunk.get("article_title"),
+            "section_title": chunk.get("section_title"),
+            "subsection_title": chunk.get("subsection_title"),
+            "chapter_title": chunk.get("chapter_title"),
+            "paragraph_title": chunk.get("paragraph_title"),
+            "source_format": chunk.get("source_format"),
+            "source_filename": chunk.get("source_filename"),
             "chunk_index": chunk.get("chunk_index"),
             "referenced_articles": chunk.get("referenced_articles") or [],
         }

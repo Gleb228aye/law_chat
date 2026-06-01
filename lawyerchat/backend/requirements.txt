@@ -10,3 +10,5 @@ sentence-transformers
 numpy
 python-multipart
 openai
+beautifulsoup4
+lxml

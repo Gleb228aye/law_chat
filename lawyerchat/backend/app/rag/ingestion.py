@@ -93,6 +93,22 @@ def _load_jsonl_chunks(file_path: Path) -> tuple[str, list[dict], list[str]]:
                         item.get("article_number")
                     ),
                     "article_title": _clean_optional_string(item.get("article_title")),
+                    "section_title": _clean_optional_string(
+                        item.get("section_title")
+                    ),
+                    "subsection_title": _clean_optional_string(
+                        item.get("subsection_title")
+                    ),
+                    "chapter_title": _clean_optional_string(
+                        item.get("chapter_title")
+                    ),
+                    "paragraph_title": _clean_optional_string(
+                        item.get("paragraph_title")
+                    ),
+                    "source_format": _clean_optional_string(item.get("source_format")),
+                    "source_filename": _clean_optional_string(
+                        item.get("source_filename") or item.get("filename")
+                    ),
                     "referenced_articles": _clean_referenced_articles(
                         item.get("referenced_articles")
                     ),
@@ -183,6 +199,12 @@ def ingest_documents(db: Session, docs_dir: str | Path | None = None) -> dict:
                         content=item["content"],
                         article_number=item.get("article_number"),
                         article_title=item.get("article_title"),
+                        section_title=item.get("section_title"),
+                        subsection_title=item.get("subsection_title"),
+                        chapter_title=item.get("chapter_title"),
+                        paragraph_title=item.get("paragraph_title"),
+                        source_format=item.get("source_format"),
+                        source_filename=item.get("source_filename"),
                         referenced_articles=_referenced_articles_for_item(item),
                         embedding=embedding,
                     )

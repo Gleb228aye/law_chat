@@ -55,3 +55,19 @@ def create_tables() -> None:
                     """
                 )
             )
+            for column_name in (
+                "section_title",
+                "subsection_title",
+                "chapter_title",
+                "paragraph_title",
+                "source_format",
+                "source_filename",
+            ):
+                connection.execute(
+                    text(
+                        f"""
+                        ALTER TABLE chunks
+                        ADD COLUMN IF NOT EXISTS {column_name} VARCHAR
+                        """
+                    )
+                )

@@ -1,5 +1,17 @@
 const API_BASE_URL = "http://localhost:8000";
 
+const USERS_STORAGE_KEY = "lawyerchat_users_v1";
+const ACTIVE_USER_STORAGE_KEY = "lawyerchat_active_user_v1";
+const HISTORY_STORAGE_PREFIX = "lawyerchat_history_v1:";
+const HISTORY_LIMIT = 20;
+
+const loginForm = document.getElementById("loginForm");
+const registerForm = document.getElementById("registerForm");
+const authForms = document.getElementById("authForms");
+const authStatus = document.getElementById("authStatus");
+const accountPanel = document.getElementById("accountPanel");
+const logoutButton = document.getElementById("logoutButton");
+
 const healthButton = document.getElementById("healthButton");
 const healthStatus = document.getElementById("healthStatus");
 const healthDetails = document.getElementById("healthDetails");
@@ -21,33 +33,80 @@ const searchStatus = document.getElementById("searchStatus");
 const searchMeta = document.getElementById("searchMeta");
 const resultsList = document.getElementById("resultsList");
 
-async function apiRequest(path, options = {}) {
-  let response;
+const clearHistoryButton = document.getElementById("clearHistoryButton");
+const historyStatus = document.getElementById("historyStatus");
+const historyList = document.getElementById("historyList");
+
+function safeParseJson(value, fallback) {
+  if (!value) {
+    return fallback;
+  }
 
   try {
-    response = await fetch(`${API_BASE_URL}${path}`, {
-      ...options,
-      headers: {
-        "Content-Type": "application/json",
-        ...(options.headers || {})
-      }
-    });
-  } catch (error) {
-    throw new Error("Backend недоступен. Проверьте, что сервер запущен на http://localhost:8000");
+    return JSON.parse(value);
+  } catch (_error) {
+    return fallback;
+  }
+}
+
+function getStoredUsers() {
+  const users = safeParseJson(localStorage.getItem(USERS_STORAGE_KEY), []);
+  return Array.isArray(users) ? users : [];
+}
+
+function saveStoredUsers(users) {
+  localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(users));
+}
+
+function normalizeUsername(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+async function hashPassword(password) {
+  const text = String(password || "");
+
+  if (window.crypto?.subtle) {
+    const data = new TextEncoder().encode(text);
+    const digest = await window.crypto.subtle.digest("SHA-256", data);
+    return Array.from(new Uint8Array(digest))
+      .map((byte) => byte.toString(16).padStart(2, "0"))
+      .join("");
   }
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    const error = new Error(`HTTP ${response.status}${errorText ? `: ${errorText}` : ""}`);
-    error.status = response.status;
-    throw error;
+  return btoa(unescape(encodeURIComponent(text)));
+}
+
+function getActiveUsername() {
+  return localStorage.getItem(ACTIVE_USER_STORAGE_KEY) || "";
+}
+
+function setActiveUsername(username) {
+  if (username) {
+    localStorage.setItem(ACTIVE_USER_STORAGE_KEY, username);
+  } else {
+    localStorage.removeItem(ACTIVE_USER_STORAGE_KEY);
+  }
+}
+
+function getHistoryKey(username = getActiveUsername()) {
+  return `${HISTORY_STORAGE_PREFIX}${username}`;
+}
+
+function loadHistory(username = getActiveUsername()) {
+  if (!username) {
+    return [];
   }
 
-  if (response.status === 204) {
-    return null;
+  const items = safeParseJson(localStorage.getItem(getHistoryKey(username)), []);
+  return Array.isArray(items) ? items : [];
+}
+
+function saveHistory(items, username = getActiveUsername()) {
+  if (!username) {
+    return;
   }
 
-  return response.json();
+  localStorage.setItem(getHistoryKey(username), JSON.stringify(items.slice(0, HISTORY_LIMIT)));
 }
 
 function setMessage(element, message, isError = false) {
@@ -165,6 +224,15 @@ function getSelectedMode() {
   return selected?.value === "chat" ? "chat" : "retrieval";
 }
 
+function setSelectedMode(mode) {
+  const normalized = mode === "chat" ? "chat" : "retrieval";
+  const input = document.querySelector(`input[name="answerMode"][value="${normalized}"]`);
+  if (input) {
+    input.checked = true;
+  }
+  updateSearchModeText();
+}
+
 function updateSearchModeText() {
   const mode = getSelectedMode();
 
@@ -178,6 +246,232 @@ function updateSearchModeText() {
   searchButton.textContent = "Найти фрагменты";
   resultsTitle.textContent = "Найденные фрагменты";
   resultsDescription.textContent = "Фрагменты отображаются без генерации ответа.";
+}
+
+function renderAuthState() {
+  const username = getActiveUsername();
+  const isLoggedIn = Boolean(username);
+
+  authForms.hidden = isLoggedIn;
+  logoutButton.hidden = !isLoggedIn;
+  accountPanel.hidden = !isLoggedIn;
+
+  if (isLoggedIn) {
+    accountPanel.textContent = `Вы вошли как ${username}. История сохраняется локально в этом браузере.`;
+    setMessage(authStatus, "Локальный аккаунт активен. Серверная авторизация в MVP не используется.");
+  } else {
+    setMessage(authStatus, "Можно пользоваться поиском без входа, но история будет сохраняться только после входа.");
+  }
+
+  renderHistory();
+}
+
+async function registerUser(event) {
+  event.preventDefault();
+
+  const username = normalizeUsername(registerForm.elements.username.value);
+  const password = registerForm.elements.password.value;
+
+  if (!username || password.length < 4) {
+    setMessage(authStatus, "Введите логин и пароль длиной не менее 4 символов.", true);
+    return;
+  }
+
+  const users = getStoredUsers();
+  if (users.some((user) => user.username === username)) {
+    setMessage(authStatus, "Такой локальный пользователь уже существует.", true);
+    return;
+  }
+
+  users.push({ username, password_hash: await hashPassword(password), created_at: new Date().toISOString() });
+  saveStoredUsers(users);
+  setActiveUsername(username);
+  registerForm.reset();
+  loginForm.reset();
+  renderAuthState();
+}
+
+async function loginUser(event) {
+  event.preventDefault();
+
+  const username = normalizeUsername(loginForm.elements.username.value);
+  const passwordHash = await hashPassword(loginForm.elements.password.value);
+  const user = getStoredUsers().find((item) => item.username === username);
+
+  if (!user || user.password_hash !== passwordHash) {
+    setMessage(authStatus, "Неверный логин или пароль.", true);
+    return;
+  }
+
+  setActiveUsername(username);
+  loginForm.reset();
+  renderAuthState();
+}
+
+function logoutUser() {
+  setActiveUsername("");
+  renderAuthState();
+}
+
+function summarizeSources(sources) {
+  if (!Array.isArray(sources) || sources.length === 0) {
+    return [];
+  }
+
+  return sources.map((source) => ({
+    filename: source.filename || null,
+    article_number: source.article_number || null,
+    article_title: source.article_title || null,
+    chunk_index: source.chunk_index ?? null,
+    referenced_articles: Array.isArray(source.referenced_articles) ? source.referenced_articles : []
+  }));
+}
+
+function buildHistoryEntry(query, mode, topK, data) {
+  const isChat = mode === "chat";
+  const sources = isChat ? summarizeSources(data.sources) : summarizeSources(data.results);
+  const answer = isChat
+    ? data.answer || "Backend вернул пустой ответ."
+    : `Найдено фрагментов: ${data.total_results ?? sources.length}.`;
+
+  return {
+    id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    created_at: new Date().toISOString(),
+    query,
+    mode,
+    top_k: topK,
+    answer,
+    sources,
+    total_sources: data.total_sources ?? data.total_results ?? sources.length
+  };
+}
+
+function addHistoryEntry(query, mode, topK, data) {
+  const username = getActiveUsername();
+  if (!username) {
+    setMessage(historyStatus, "Войдите в локальный аккаунт, чтобы сохранять историю.");
+    return;
+  }
+
+  const history = loadHistory(username);
+  history.unshift(buildHistoryEntry(query, mode, topK, data));
+  saveHistory(history, username);
+  renderHistory();
+}
+
+function renderHistory() {
+  const username = getActiveUsername();
+  clearElement(historyList);
+
+  if (!username) {
+    setMessage(historyStatus, "Войдите в локальный аккаунт, чтобы сохранять историю.");
+    return;
+  }
+
+  const history = loadHistory(username);
+  if (!history.length) {
+    setMessage(historyStatus, "История пока пуста.");
+    return;
+  }
+
+  setMessage(historyStatus, `Сохранено сообщений: ${history.length}.`);
+
+  history.forEach((item) => {
+    const card = document.createElement("article");
+    card.className = "card history-card";
+
+    const header = document.createElement("div");
+    header.className = "card-header";
+
+    const titleBlock = document.createElement("div");
+    const title = document.createElement("h3");
+    title.className = "card-title";
+    title.textContent = item.query || "Вопрос без текста";
+    titleBlock.appendChild(title);
+
+    const meta = document.createElement("div");
+    meta.className = "card-meta";
+    appendInlineMeta(meta, formatDate(item.created_at));
+    appendInlineMeta(meta, item.mode === "chat" ? "RAG/LLM" : "retrieval");
+    appendInlineMeta(meta, `top_k: ${item.top_k ?? 5}`);
+    appendInlineMeta(meta, `источников: ${item.total_sources ?? 0}`);
+    titleBlock.appendChild(meta);
+
+    const repeatButton = document.createElement("button");
+    repeatButton.type = "button";
+    repeatButton.className = "secondary";
+    repeatButton.textContent = "Повторить";
+    repeatButton.addEventListener("click", () => {
+      queryInput.value = item.query || "";
+      topKInput.value = item.top_k ?? 5;
+      setSelectedMode(item.mode);
+      queryInput.focus();
+    });
+
+    header.append(titleBlock, repeatButton);
+    card.appendChild(header);
+
+    const answer = document.createElement("div");
+    answer.className = "content";
+    answer.textContent = item.answer || "Ответ не сохранен.";
+    card.appendChild(answer);
+
+    if (Array.isArray(item.sources) && item.sources.length) {
+      const sources = document.createElement("div");
+      sources.className = "card-meta";
+      item.sources.slice(0, 5).forEach((source) => {
+        appendInlineMeta(
+          sources,
+          [source.filename, source.article_number ? `ст. ${source.article_number}` : null]
+            .filter(Boolean)
+            .join(" — ")
+        );
+      });
+      card.appendChild(sources);
+    }
+
+    historyList.appendChild(card);
+  });
+}
+
+function clearHistory() {
+  const username = getActiveUsername();
+  if (!username) {
+    setMessage(historyStatus, "Нет активного пользователя.", true);
+    return;
+  }
+
+  localStorage.removeItem(getHistoryKey(username));
+  renderHistory();
+}
+
+async function apiRequest(path, options = {}) {
+  let response;
+
+  try {
+    response = await fetch(`${API_BASE_URL}${path}`, {
+      ...options,
+      headers: {
+        "Content-Type": "application/json",
+        ...(options.headers || {})
+      }
+    });
+  } catch (error) {
+    throw new Error("Backend недоступен. Проверьте, что сервер запущен на http://localhost:8000");
+  }
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    const error = new Error(`HTTP ${response.status}${errorText ? `: ${errorText}` : ""}`);
+    error.status = response.status;
+    throw error;
+  }
+
+  if (response.status === 204) {
+    return null;
+  }
+
+  return response.json();
 }
 
 async function checkHealth() {
@@ -423,6 +717,8 @@ async function searchDocuments(event) {
     } else {
       renderSearchResults(data || {});
     }
+
+    addHistoryEntry(query, mode, topK, data || {});
   } catch (error) {
     if (mode === "chat" && error.status === 503) {
       setMessage(searchStatus, "LLM не настроена. Проверьте LLM_API_KEY в backend/.env", true);
@@ -575,14 +871,23 @@ function renderChatAnswer(data) {
 }
 
 function appendInlineMeta(container, value) {
+  if (!value) {
+    return;
+  }
+
   const item = document.createElement("span");
   item.textContent = value;
   container.appendChild(item);
 }
 
+loginForm.addEventListener("submit", loginUser);
+registerForm.addEventListener("submit", registerUser);
+logoutButton.addEventListener("click", logoutUser);
+clearHistoryButton.addEventListener("click", clearHistory);
 healthButton.addEventListener("click", checkHealth);
 documentsButton.addEventListener("click", loadDocuments);
 reindexButton.addEventListener("click", reindexDocuments);
 searchForm.addEventListener("submit", searchDocuments);
 modeInputs.forEach((input) => input.addEventListener("change", updateSearchModeText));
 updateSearchModeText();
+renderAuthState();

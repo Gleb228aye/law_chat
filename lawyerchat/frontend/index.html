@@ -17,6 +17,48 @@
       <p class="notice">Система не является юридической консультацией</p>
     </header>
 
+    <section class="panel auth-panel" aria-labelledby="auth-title">
+      <div class="section-header">
+        <div>
+          <h2 id="auth-title">Пользователь</h2>
+          <p class="section-note">Локальный вход нужен для сохранения истории диалога в браузере.</p>
+        </div>
+        <button id="logoutButton" type="button" class="secondary" hidden>Выйти</button>
+      </div>
+
+      <div id="accountPanel" class="message" hidden></div>
+
+      <div id="authForms" class="auth-grid">
+        <form id="loginForm" class="auth-form">
+          <h3>Вход</h3>
+          <div class="field">
+            <label for="loginUsername">Логин</label>
+            <input id="loginUsername" name="username" autocomplete="username" required>
+          </div>
+          <div class="field">
+            <label for="loginPassword">Пароль</label>
+            <input id="loginPassword" name="password" type="password" autocomplete="current-password" required>
+          </div>
+          <button type="submit">Войти</button>
+        </form>
+
+        <form id="registerForm" class="auth-form">
+          <h3>Регистрация</h3>
+          <div class="field">
+            <label for="registerUsername">Логин</label>
+            <input id="registerUsername" name="username" autocomplete="username" required>
+          </div>
+          <div class="field">
+            <label for="registerPassword">Пароль</label>
+            <input id="registerPassword" name="password" type="password" autocomplete="new-password" minlength="4" required>
+          </div>
+          <button type="submit">Зарегистрироваться</button>
+        </form>
+      </div>
+
+      <div id="authStatus" class="message muted" aria-live="polite"></div>
+    </section>
+
     <section class="panel" aria-labelledby="health-title">
       <div class="section-header">
         <div>
@@ -85,6 +127,18 @@
           <button id="searchButton" type="submit">Найти фрагменты</button>
         </div>
       </form>
+    </section>
+
+    <section class="panel" aria-labelledby="history-title">
+      <div class="section-header">
+        <div>
+          <h2 id="history-title">История диалога</h2>
+          <p class="section-note">Последние вопросы и ответы сохраняются локально для текущего пользователя.</p>
+        </div>
+        <button id="clearHistoryButton" type="button" class="secondary">Очистить историю</button>
+      </div>
+      <div id="historyStatus" class="message muted" aria-live="polite">Войдите в локальный аккаунт, чтобы сохранять историю.</div>
+      <div id="historyList" class="card-list"></div>
     </section>
 
     <section class="panel" aria-labelledby="results-title">

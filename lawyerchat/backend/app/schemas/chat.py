@@ -14,6 +14,7 @@ class ChatRequest(BaseModel):
 
 
 class ChatSource(BaseModel):
+    document_title: str | None = None
     filename: str | None = None
     article_number: str | None = None
     article_title: str | None = None

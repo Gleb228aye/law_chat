@@ -1,25 +1,20 @@
 const API_BASE_URL = "http://localhost:8000";
 
-const healthButton = document.getElementById("healthButton");
-const healthStatus = document.getElementById("healthStatus");
-const healthDetails = document.getElementById("healthDetails");
-
-const documentsButton = document.getElementById("documentsButton");
-const reindexButton = document.getElementById("reindexButton");
-const documentsStatus = document.getElementById("documentsStatus");
-const reindexResult = document.getElementById("reindexResult");
-const documentsList = document.getElementById("documentsList");
-
-const searchForm = document.getElementById("searchForm");
-const queryInput = document.getElementById("queryInput");
+const chatForm = document.getElementById("chatForm");
+const chatInput = document.getElementById("chatInput");
 const topKInput = document.getElementById("topKInput");
-const modeInputs = document.querySelectorAll('input[name="answerMode"]');
-const searchButton = document.getElementById("searchButton");
-const resultsTitle = document.getElementById("results-title");
-const resultsDescription = document.getElementById("resultsDescription");
-const searchStatus = document.getElementById("searchStatus");
-const searchMeta = document.getElementById("searchMeta");
-const resultsList = document.getElementById("resultsList");
+const sendButton = document.getElementById("sendButton");
+const chatMessages = document.getElementById("chatMessages");
+
+const openSearchPanel = document.getElementById("openSearchPanel");
+const closeSearchPanel = document.getElementById("closeSearchPanel");
+const searchPanel = document.getElementById("searchPanel");
+const technicalSearchForm = document.getElementById("technicalSearchForm");
+const technicalQueryInput = document.getElementById("technicalQueryInput");
+const technicalTopKInput = document.getElementById("technicalTopKInput");
+const technicalSearchButton = document.getElementById("technicalSearchButton");
+const technicalStatus = document.getElementById("technicalStatus");
+const technicalResults = document.getElementById("technicalResults");
 
 async function apiRequest(path, options = {}) {
   let response;
@@ -43,17 +38,7 @@ async function apiRequest(path, options = {}) {
     throw error;
   }
 
-  if (response.status === 204) {
-    return null;
-  }
-
-  return response.json();
-}
-
-function setMessage(element, message, isError = false) {
-  element.textContent = message;
-  element.classList.toggle("error", isError);
-  element.classList.toggle("muted", !isError);
+  return response.status === 204 ? null : response.json();
 }
 
 function clearElement(element) {
@@ -62,74 +47,15 @@ function clearElement(element) {
   }
 }
 
-function appendTextRow(container, label, value) {
-  if (value === undefined || value === null || value === "") {
-    return;
+function normalizeTopK(value) {
+  const number = Number.parseInt(value, 10);
+  if (Number.isNaN(number)) {
+    return 5;
   }
-
-  const row = document.createElement("div");
-  const labelEl = document.createElement("dt");
-  const valueEl = document.createElement("dd");
-
-  labelEl.textContent = label;
-  valueEl.textContent = value;
-
-  row.append(labelEl, valueEl);
-  container.appendChild(row);
+  return Math.min(20, Math.max(1, number));
 }
 
-function appendSummaryRow(container, label, value) {
-  if (value === undefined || value === null || value === "") {
-    return;
-  }
-
-  const row = document.createElement("div");
-  row.className = "summary-row";
-
-  const labelEl = document.createElement("div");
-  labelEl.className = "summary-label";
-  labelEl.textContent = label;
-
-  const valueEl = document.createElement("div");
-  valueEl.className = "summary-value";
-  valueEl.textContent = Array.isArray(value) ? formatArray(value) : value;
-
-  row.append(labelEl, valueEl);
-  container.appendChild(row);
-}
-
-function formatBoolean(value) {
-  if (value === true) {
-    return "доступна";
-  }
-
-  if (value === false) {
-    return "недоступна";
-  }
-
-  return value ?? "нет данных";
-}
-
-function formatDate(value) {
-  if (!value) {
-    return "дата не указана";
-  }
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-
-  return date.toLocaleString("ru-RU", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit"
-  });
-}
-
-function formatNumber(value, digits = 6) {
+function formatNumber(value, digits = 4) {
   if (value === undefined || value === null || value === "") {
     return null;
   }
@@ -142,275 +68,162 @@ function formatNumber(value, digits = 6) {
   return number.toFixed(digits).replace(/0+$/, "").replace(/\.$/, "");
 }
 
-function formatArray(value) {
-  if (!value.length) {
-    return "нет";
+function appendMessage(role, text, options = {}) {
+  const row = document.createElement("article");
+  row.className = `message-row ${role}`;
+
+  const bubble = document.createElement("div");
+  bubble.className = "message-bubble";
+  if (options.loading) {
+    bubble.classList.add("loading");
+  }
+  if (options.error) {
+    bubble.classList.add("error");
   }
 
-  return value.join(", ");
+  const paragraph = document.createElement("p");
+  paragraph.textContent = text;
+  bubble.appendChild(paragraph);
+  row.appendChild(bubble);
+  chatMessages.appendChild(row);
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+  return row;
 }
 
-function normalizeTopK(value) {
-  const number = Number.parseInt(value, 10);
+function replaceMessage(row, role, text, options = {}) {
+  row.className = `message-row ${role}`;
+  clearElement(row);
 
-  if (Number.isNaN(number)) {
-    return 5;
+  const bubble = document.createElement("div");
+  bubble.className = "message-bubble";
+  if (options.error) {
+    bubble.classList.add("error");
   }
 
-  return Math.min(20, Math.max(1, number));
+  const paragraph = document.createElement("p");
+  paragraph.textContent = text;
+  bubble.appendChild(paragraph);
+  row.appendChild(bubble);
+  chatMessages.scrollTop = chatMessages.scrollHeight;
 }
 
-function getSelectedMode() {
-  const selected = document.querySelector('input[name="answerMode"]:checked');
-  return selected?.value === "chat" ? "chat" : "retrieval";
+function knownDocumentName(value) {
+  if (!value) {
+    return null;
+  }
+
+  const normalized = String(value).toLowerCase();
+  if (normalized.includes("tk_rf") || normalized.includes("trud")) {
+    return "Трудовой кодекс Российской Федерации";
+  }
+  if (normalized.includes("uk_rf") || normalized.includes("ugol")) {
+    return "Уголовный кодекс Российской Федерации";
+  }
+  if (normalized.includes("gk_rf") || normalized.includes("grazhd")) {
+    return "Гражданский кодекс Российской Федерации";
+  }
+  if (normalized.includes("nk_rf") || normalized.includes("nalog")) {
+    return "Налоговый кодекс Российской Федерации";
+  }
+
+  return null;
 }
 
-function updateSearchModeText() {
-  const mode = getSelectedMode();
+function sourceDocumentTitle(source) {
+  return (
+    source.document_title ||
+    knownDocumentName(source.filename) ||
+    knownDocumentName(source.source_filename) ||
+    "Нормативный документ"
+  );
+}
 
-  if (mode === "chat") {
-    searchButton.textContent = "Сформировать ответ";
-    resultsTitle.textContent = "Ответ системы";
-    resultsDescription.textContent = "Ответ сформирован на основе найденных фрагментов и не является юридической консультацией.";
+function articleLabel(source) {
+  if (!source.article_number && !source.article_title) {
+    return null;
+  }
+
+  if (source.article_number && source.article_title) {
+    return `Статья ${source.article_number}. ${source.article_title}`;
+  }
+
+  if (source.article_number) {
+    return `Статья ${source.article_number}`;
+  }
+
+  return source.article_title;
+}
+
+function appendSourceLine(container, value) {
+  if (!value) {
     return;
   }
 
-  searchButton.textContent = "Найти фрагменты";
-  resultsTitle.textContent = "Найденные фрагменты";
-  resultsDescription.textContent = "Фрагменты отображаются без генерации ответа.";
+  const line = document.createElement("div");
+  line.textContent = value;
+  container.appendChild(line);
 }
 
-async function checkHealth() {
-  healthButton.disabled = true;
-  healthDetails.hidden = true;
-  clearElement(healthDetails);
-  setMessage(healthStatus, "Проверяем систему...");
+function renderSources(sources, hostRow) {
+  const block = document.createElement("div");
+  block.className = "sources-block";
 
-  try {
-    const data = await apiRequest("/health");
+  const title = document.createElement("h3");
+  title.className = "sources-title";
+  title.textContent = "Использованные нормы";
+  block.appendChild(title);
 
-    appendTextRow(healthDetails, "status", data?.status ?? "нет данных");
-    appendTextRow(healthDetails, "database", formatBoolean(data?.database));
-    appendTextRow(healthDetails, "pgvector", formatBoolean(data?.pgvector));
-
-    healthDetails.hidden = false;
-    setMessage(healthStatus, "Система ответила успешно.");
-  } catch (error) {
-    setMessage(healthStatus, error.message, true);
-  } finally {
-    healthButton.disabled = false;
-  }
-}
-
-async function loadDocuments() {
-  documentsButton.disabled = true;
-  clearElement(documentsList);
-  setMessage(documentsStatus, "Загружаем документы...");
-
-  try {
-    const documents = await apiRequest("/api/documents");
-    renderDocuments(Array.isArray(documents) ? documents : []);
-  } catch (error) {
-    setMessage(documentsStatus, error.message, true);
-  } finally {
-    documentsButton.disabled = false;
-  }
-}
-
-async function reindexDocuments() {
-  reindexButton.disabled = true;
-  reindexButton.textContent = "Идет индексация...";
-  reindexResult.hidden = true;
-  clearElement(reindexResult);
-  setMessage(documentsStatus, "Переиндексируем документы...");
-
-  try {
-    const result = await apiRequest("/api/documents/reindex", {
-      method: "POST"
-    });
-
-    renderReindexResult(result || {});
-    setMessage(documentsStatus, "Индексация завершена.");
-    await loadDocuments();
-  } catch (error) {
-    setMessage(documentsStatus, error.message, true);
-  } finally {
-    reindexButton.disabled = false;
-    reindexButton.textContent = "Переиндексировать документы";
-  }
-}
-
-function renderDocuments(documents) {
-  clearElement(documentsList);
-
-  if (!documents.length) {
-    setMessage(documentsStatus, "Документы пока не проиндексированы");
-    return;
-  }
-
-  setMessage(documentsStatus, `Документов найдено: ${documents.length}.`);
-
-  documents.forEach((documentItem) => {
-    const card = document.createElement("article");
-    card.className = "card";
-
-    const header = document.createElement("div");
-    header.className = "card-header";
-
-    const titleBlock = document.createElement("div");
-    const title = document.createElement("h3");
-    title.className = "card-title";
-    title.textContent = documentItem.filename || "Документ без имени";
-    titleBlock.appendChild(title);
-
-    if (documentItem.title) {
-      const documentTitle = document.createElement("div");
-      documentTitle.className = "card-meta";
-      documentTitle.textContent = documentItem.title;
-      titleBlock.appendChild(documentTitle);
-    }
-
-    const chunksBadge = document.createElement("span");
-    chunksBadge.className = "badge";
-    chunksBadge.textContent = `Фрагментов: ${documentItem.chunks_count ?? 0}`;
-
-    header.append(titleBlock, chunksBadge);
-
-    const meta = document.createElement("div");
-    meta.className = "card-meta";
-
-    const date = document.createElement("span");
-    date.textContent = `Дата: ${formatDate(documentItem.updated_at || documentItem.created_at)}`;
-    meta.appendChild(date);
-
-    const chunksButton = document.createElement("button");
-    chunksButton.type = "button";
-    chunksButton.className = "secondary";
-    chunksButton.textContent = "Показать фрагменты";
-
-    const chunksContainer = document.createElement("div");
-    chunksContainer.className = "compact-list";
-    chunksContainer.hidden = true;
-
-    chunksButton.addEventListener("click", () => toggleDocumentChunks(documentItem, chunksButton, chunksContainer));
-
-    card.append(header, meta, chunksButton, chunksContainer);
-    documentsList.appendChild(card);
-  });
-}
-
-function renderReindexResult(result) {
-  clearElement(reindexResult);
-
-  appendSummaryRow(reindexResult, "files_found", result.files_found);
-  appendSummaryRow(reindexResult, "files_processed", result.files_processed);
-  appendSummaryRow(reindexResult, "documents_created", result.documents_created);
-  appendSummaryRow(reindexResult, "chunks_created", result.chunks_created);
-  appendSummaryRow(reindexResult, "skipped_files", result.skipped_files);
-  appendSummaryRow(reindexResult, "processed_files", result.processed_files);
-  appendSummaryRow(reindexResult, "message", result.message);
-
-  reindexResult.hidden = false;
-}
-
-async function toggleDocumentChunks(documentItem, button, container) {
-  if (!container.hidden) {
-    container.hidden = true;
-    button.textContent = "Показать фрагменты";
-    return;
-  }
-
-  button.disabled = true;
-  button.textContent = "Загружаем...";
-  clearElement(container);
-
-  try {
-    const chunks = await apiRequest(`/api/documents/${documentItem.id}/chunks`);
-    renderDocumentChunks(Array.isArray(chunks) ? chunks : [], container);
-    container.hidden = false;
-    button.textContent = "Скрыть фрагменты";
-  } catch (error) {
-    const errorEl = document.createElement("div");
-    errorEl.className = "message error";
-    errorEl.textContent = error.message;
-    container.appendChild(errorEl);
-    container.hidden = false;
-    button.textContent = "Показать фрагменты";
-  } finally {
-    button.disabled = false;
-  }
-}
-
-function renderDocumentChunks(chunks, container) {
-  clearElement(container);
-
-  if (!chunks.length) {
+  if (!sources.length) {
     const empty = document.createElement("div");
-    empty.className = "message muted";
-    empty.textContent = "Фрагменты для документа не найдены.";
-    container.appendChild(empty);
+    empty.className = "source-card";
+    empty.textContent = "Источники не найдены.";
+    block.appendChild(empty);
+    hostRow.appendChild(block);
     return;
   }
 
-  chunks.forEach((chunk) => {
-    const chunkCard = document.createElement("div");
-    chunkCard.className = "chunk-card";
+  sources.forEach((source) => {
+    const card = document.createElement("article");
+    card.className = "source-card";
 
-    const title = document.createElement("p");
-    title.className = "chunk-title";
-    title.textContent = `Фрагмент #${chunk.chunk_index ?? "без номера"}`;
-    chunkCard.appendChild(title);
+    const documentTitle = document.createElement("strong");
+    documentTitle.textContent = sourceDocumentTitle(source);
+    card.appendChild(documentTitle);
 
-    if (chunk.article_number) {
-      const articleNumber = document.createElement("div");
-      articleNumber.className = "card-meta";
-      articleNumber.textContent = `Статья: ${chunk.article_number}`;
-      chunkCard.appendChild(articleNumber);
-    }
+    appendSourceLine(card, source.section_title);
+    appendSourceLine(card, source.subsection_title);
+    appendSourceLine(card, source.chapter_title);
+    appendSourceLine(card, source.paragraph_title);
+    appendSourceLine(card, articleLabel(source));
 
-    if (chunk.article_title) {
-      const articleTitle = document.createElement("div");
-      articleTitle.className = "card-meta";
-      articleTitle.textContent = chunk.article_title;
-      chunkCard.appendChild(articleTitle);
-    }
-
-    const content = document.createElement("div");
-    content.className = "content";
-    content.textContent = chunk.content || "";
-    chunkCard.appendChild(content);
-
-    container.appendChild(chunkCard);
+    block.appendChild(card);
   });
+
+  hostRow.appendChild(block);
 }
 
-async function searchDocuments(event) {
+async function submitChat(event) {
   event.preventDefault();
 
-  const query = queryInput.value.trim();
+  const query = chatInput.value.trim();
   const topK = normalizeTopK(topKInput.value);
-  const mode = getSelectedMode();
   topKInput.value = topK;
 
-  clearElement(resultsList);
-  searchMeta.hidden = true;
-  clearElement(searchMeta);
-
   if (!query) {
-    setMessage(searchStatus, "Введите вопрос для поиска.", true);
-    queryInput.focus();
+    chatInput.focus();
     return;
   }
 
-  searchButton.disabled = true;
-  setMessage(
-    searchStatus,
-    mode === "chat" ? "Формируем ответ на основе найденных фрагментов..." : "Ищем фрагменты..."
-  );
+  appendMessage("user", query);
+  chatInput.value = "";
+  sendButton.disabled = true;
+
+  const pendingRow = appendMessage("assistant", "Формируется ответ...", {
+    loading: true
+  });
 
   try {
-    const endpoint = mode === "chat" ? "/api/chat" : "/api/search";
-    const data = await apiRequest(endpoint, {
+    const data = await apiRequest("/api/chat", {
       method: "POST",
       body: JSON.stringify({
         query,
@@ -418,171 +231,152 @@ async function searchDocuments(event) {
       })
     });
 
-    if (mode === "chat") {
-      renderChatAnswer(data || {});
-    } else {
-      renderSearchResults(data || {});
-    }
+    replaceMessage(
+      pendingRow,
+      "assistant",
+      data?.answer || "Backend вернул пустой ответ."
+    );
+    renderSources(Array.isArray(data?.sources) ? data.sources : [], pendingRow);
   } catch (error) {
-    if (mode === "chat" && error.status === 503) {
-      setMessage(searchStatus, "LLM не настроена. Проверьте LLM_API_KEY в backend/.env", true);
-    } else {
-      setMessage(searchStatus, error.message, true);
-    }
+    const message =
+      error.status === 503
+        ? "LLM не настроена. Проверьте LLM_API_KEY в backend/.env."
+        : error.message;
+    replaceMessage(pendingRow, "assistant", message, { error: true });
   } finally {
-    searchButton.disabled = false;
-    updateSearchModeText();
+    sendButton.disabled = false;
+    chatInput.focus();
   }
 }
 
-function renderSearchResults(data) {
-  clearElement(resultsList);
-  clearElement(searchMeta);
+function openTechnicalSearch() {
+  searchPanel.classList.add("open");
+  searchPanel.setAttribute("aria-hidden", "false");
+  if (!technicalQueryInput.value.trim()) {
+    technicalQueryInput.value = chatInput.value.trim();
+  }
+  technicalQueryInput.focus();
+}
 
+function closeTechnicalSearch() {
+  searchPanel.classList.remove("open");
+  searchPanel.setAttribute("aria-hidden", "true");
+  openSearchPanel.focus();
+}
+
+function setTechnicalStatus(message, isError = false) {
+  technicalStatus.textContent = message;
+  technicalStatus.classList.toggle("error", isError);
+  technicalStatus.classList.toggle("muted", !isError);
+}
+
+function renderTechnicalResults(data) {
+  clearElement(technicalResults);
   const results = Array.isArray(data.results) ? data.results : [];
 
-  appendSummaryRow(searchMeta, "note", data.note);
-  appendSummaryRow(searchMeta, "total_results", data.total_results ?? results.length);
-  searchMeta.hidden = false;
-
   if (!results.length) {
-    setMessage(searchStatus, "По вашему запросу фрагменты не найдены.");
+    setTechnicalStatus("По вашему запросу фрагменты не найдены.");
     return;
   }
 
-  setMessage(searchStatus, `Найдено фрагментов: ${data.total_results ?? results.length}.`);
+  setTechnicalStatus(`Найдено фрагментов: ${data.total_results ?? results.length}.`);
 
-  results.forEach((item) => {
+  results.forEach((item, index) => {
     const card = document.createElement("article");
-    card.className = "card";
+    card.className = "result-card";
 
-    const header = document.createElement("div");
-    header.className = "card-header";
-
-    const titleBlock = document.createElement("div");
     const title = document.createElement("h3");
-    title.className = "card-title";
-    title.textContent = item.filename || "Документ без имени";
-    titleBlock.appendChild(title);
-
-    const meta = document.createElement("div");
-    meta.className = "card-meta";
-    appendInlineMeta(meta, `Фрагмент #${item.chunk_index ?? "без номера"}`);
-
-    if (item.article_number) {
-      appendInlineMeta(meta, `Статья: ${item.article_number}`);
-    }
-
-    if (item.article_title) {
-      appendInlineMeta(meta, item.article_title);
-    }
-
-    titleBlock.appendChild(meta);
-
-    const metrics = document.createElement("div");
-    metrics.className = "card-meta";
-
-    const similarity = formatNumber(item.similarity, 6);
-    const distance = formatNumber(item.distance, 6);
-
-    if (similarity !== null) {
-      appendInlineMeta(metrics, `similarity: ${similarity}`);
-    }
-
-    if (distance !== null) {
-      appendInlineMeta(metrics, `distance: ${distance}`);
-    }
-
-    header.append(titleBlock, metrics);
-
-    const content = document.createElement("div");
-    content.className = "content";
-    content.textContent = item.content || "";
-
-    card.append(header, content);
-    resultsList.appendChild(card);
-  });
-}
-
-function renderChatAnswer(data) {
-  clearElement(resultsList);
-  clearElement(searchMeta);
-
-  const sources = Array.isArray(data.sources) ? data.sources : [];
-
-  appendSummaryRow(searchMeta, "total_sources", data.total_sources ?? sources.length);
-  searchMeta.hidden = false;
-
-  const answerCard = document.createElement("article");
-  answerCard.className = "card answer-card";
-
-  const answerTitle = document.createElement("h3");
-  answerTitle.className = "card-title";
-  answerTitle.textContent = "Ответ";
-
-  const answerContent = document.createElement("div");
-  answerContent.className = "answer-content";
-  answerContent.textContent = data.answer || "Backend вернул пустой ответ.";
-
-  answerCard.append(answerTitle, answerContent);
-  resultsList.appendChild(answerCard);
-
-  const sourcesTitle = document.createElement("h3");
-  sourcesTitle.className = "sources-title";
-  sourcesTitle.textContent = "Источники";
-  resultsList.appendChild(sourcesTitle);
-
-  if (!sources.length) {
-    const empty = document.createElement("div");
-    empty.className = "message muted";
-    empty.textContent = "Источники не найдены.";
-    resultsList.appendChild(empty);
-    setMessage(searchStatus, "Ответ сформирован без источников.");
-    return;
-  }
-
-  setMessage(searchStatus, `Ответ сформирован. Источников: ${data.total_sources ?? sources.length}.`);
-
-  sources.forEach((source) => {
-    const card = document.createElement("article");
-    card.className = "card source-card";
-
-    const title = document.createElement("h4");
-    title.className = "card-title";
-    title.textContent = source.filename || "Документ без имени";
+    title.className = "result-title";
+    title.textContent = sourceDocumentTitle(item);
     card.appendChild(title);
 
     const meta = document.createElement("div");
-    meta.className = "card-meta source-meta";
+    meta.className = "result-meta";
 
-    appendInlineMeta(meta, `Фрагмент #${source.chunk_index ?? "без номера"}`);
-
-    if (source.article_number) {
-      appendInlineMeta(meta, `Статья: ${source.article_number}`);
+    const article = articleLabel(item);
+    if (article) {
+      appendTechnicalMeta(meta, article);
     }
 
-    if (source.article_title) {
-      appendInlineMeta(meta, source.article_title);
+    const similarity = formatNumber(item.similarity, 4);
+    const distance = formatNumber(item.distance, 4);
+    appendTechnicalMeta(meta, `Фрагмент ${index + 1}`);
+    if (similarity !== null) {
+      appendTechnicalMeta(meta, `similarity: ${similarity}`);
     }
-
-    if (Array.isArray(source.referenced_articles) && source.referenced_articles.length) {
-      appendInlineMeta(meta, `Связанные статьи: ${source.referenced_articles.join(", ")}`);
+    if (distance !== null) {
+      appendTechnicalMeta(meta, `distance: ${distance}`);
     }
 
     card.appendChild(meta);
-    resultsList.appendChild(card);
+
+    const content = document.createElement("p");
+    content.className = "result-content";
+    content.textContent = item.content || "";
+    card.appendChild(content);
+
+    technicalResults.appendChild(card);
   });
 }
 
-function appendInlineMeta(container, value) {
+function appendTechnicalMeta(container, text) {
   const item = document.createElement("span");
-  item.textContent = value;
+  item.textContent = text;
   container.appendChild(item);
 }
 
-healthButton.addEventListener("click", checkHealth);
-documentsButton.addEventListener("click", loadDocuments);
-reindexButton.addEventListener("click", reindexDocuments);
-searchForm.addEventListener("submit", searchDocuments);
-modeInputs.forEach((input) => input.addEventListener("change", updateSearchModeText));
-updateSearchModeText();
+async function submitTechnicalSearch(event) {
+  event.preventDefault();
+
+  const query = technicalQueryInput.value.trim();
+  const topK = normalizeTopK(technicalTopKInput.value);
+  technicalTopKInput.value = topK;
+
+  clearElement(technicalResults);
+
+  if (!query) {
+    setTechnicalStatus("Введите запрос для поиска.", true);
+    technicalQueryInput.focus();
+    return;
+  }
+
+  technicalSearchButton.disabled = true;
+  setTechnicalStatus("Ищем фрагменты...");
+
+  try {
+    const data = await apiRequest("/api/search", {
+      method: "POST",
+      body: JSON.stringify({
+        query,
+        top_k: topK
+      })
+    });
+    renderTechnicalResults(data || {});
+  } catch (error) {
+    setTechnicalStatus(error.message, true);
+  } finally {
+    technicalSearchButton.disabled = false;
+  }
+}
+
+chatForm.addEventListener("submit", submitChat);
+openSearchPanel.addEventListener("click", openTechnicalSearch);
+closeSearchPanel.addEventListener("click", closeTechnicalSearch);
+searchPanel.addEventListener("click", (event) => {
+  if (event.target.matches("[data-close-search]")) {
+    closeTechnicalSearch();
+  }
+});
+technicalSearchForm.addEventListener("submit", submitTechnicalSearch);
+
+chatInput.addEventListener("keydown", (event) => {
+  if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
+    chatForm.requestSubmit();
+  }
+});
+
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && searchPanel.classList.contains("open")) {
+    closeTechnicalSearch();
+  }
+});

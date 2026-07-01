@@ -20,6 +20,7 @@ class ChunkItem(BaseModel):
 
     id: int
     document_id: int
+    document_title: str | None = None
     chunk_index: int
     content: str
     article_number: str | None = None

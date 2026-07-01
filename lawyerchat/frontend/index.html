@@ -8,96 +8,67 @@
   <script src="app.js" defer></script>
 </head>
 <body>
-  <main class="page">
-    <header class="hero">
+  <main class="app-shell">
+    <header class="app-header">
       <div>
         <h1>LawyerChat</h1>
-        <p class="subtitle">Семантический поиск по юридическим документам</p>
+        <p class="subtitle">Чат по нормативно-правовым документам</p>
       </div>
-      <p class="notice">Система не является юридической консультацией</p>
+      <div class="header-actions">
+        <p class="notice">Система не является юридической консультацией</p>
+        <button id="openSearchPanel" class="ghost-button" type="button">Поиск</button>
+      </div>
     </header>
 
-    <section class="panel" aria-labelledby="health-title">
-      <div class="section-header">
-        <div>
-          <h2 id="health-title">Статус backend</h2>
-          <p class="section-note">Проверка доступности сервера, базы данных и pgvector.</p>
-        </div>
-        <button id="healthButton" type="button">Проверить систему</button>
-      </div>
-      <div id="healthStatus" class="message muted" aria-live="polite">Статус еще не проверялся.</div>
-      <dl id="healthDetails" class="details-grid" hidden></dl>
-    </section>
-
-    <section class="panel" aria-labelledby="documents-title">
-      <div class="section-header">
-        <div>
-          <h2 id="documents-title">Документы</h2>
-          <p class="section-note">Список документов, доступных для поиска.</p>
-        </div>
-        <div class="button-row">
-          <button id="documentsButton" type="button" class="secondary">Показать документы</button>
-          <button id="reindexButton" type="button">Переиндексировать документы</button>
-        </div>
-      </div>
-      <div id="documentsStatus" class="message muted" aria-live="polite"></div>
-      <div id="reindexResult" class="summary" hidden></div>
-      <div id="documentsList" class="card-list"></div>
-    </section>
-
-    <section class="panel" aria-labelledby="search-title">
-      <div class="section-header">
-        <div>
-          <h2 id="search-title">Поиск фрагментов</h2>
-          <p class="section-note">Введите вопрос, чтобы найти релевантные фрагменты в индексированных документах.</p>
-        </div>
-      </div>
-
-      <form id="searchForm" class="search-form">
-        <div class="field">
-          <label for="queryInput">Вопрос</label>
-          <textarea id="queryInput" name="query" placeholder="Например: какие основания для увольнения работника?" required></textarea>
-        </div>
-
-        <fieldset class="mode-group" aria-label="Режим ответа">
-          <legend>Режим ответа</legend>
-          <label class="mode-option">
-            <input type="radio" name="answerMode" value="retrieval" checked>
-            <span>
-              <strong>Только поиск фрагментов</strong>
-              <small>Показать найденные chunks без генерации ответа</small>
-            </span>
-          </label>
-          <label class="mode-option">
-            <input type="radio" name="answerMode" value="chat">
-            <span>
-              <strong>Ответ на основе найденных фрагментов</strong>
-              <small>Сформировать ответ через backend RAG-режим</small>
-            </span>
-          </label>
-        </fieldset>
-
-        <div class="form-row">
-          <div class="field top-k-field">
-            <label for="topKInput">Количество фрагментов</label>
-            <input id="topKInput" name="topK" type="number" min="1" max="20" value="5">
+    <section class="chat-panel" aria-label="Чат LawyerChat">
+      <div id="chatMessages" class="chat-messages" aria-live="polite">
+        <article class="message-row assistant">
+          <div class="message-bubble">
+            <p>Здравствуйте. Задайте вопрос по загруженным нормативным документам, и я отвечу по найденному контексту.</p>
           </div>
-          <button id="searchButton" type="submit">Найти фрагменты</button>
+        </article>
+      </div>
+
+      <form id="chatForm" class="composer">
+        <label class="sr-only" for="chatInput">Вопрос</label>
+        <textarea id="chatInput" name="query" rows="2" placeholder="Например: как уволиться по собственному желанию?" required></textarea>
+        <div class="composer-actions">
+          <label class="top-k-control" for="topKInput">
+            Норм
+            <input id="topKInput" name="topK" type="number" min="1" max="20" value="5">
+          </label>
+          <button id="sendButton" type="submit">Отправить</button>
         </div>
       </form>
     </section>
-
-    <section class="panel" aria-labelledby="results-title">
-      <div class="section-header">
-        <div>
-          <h2 id="results-title">Найденные фрагменты</h2>
-          <p id="resultsDescription" class="section-note">Фрагменты отображаются без генерации ответа.</p>
-        </div>
-      </div>
-      <div id="searchStatus" class="message muted" aria-live="polite">Поиск еще не выполнялся.</div>
-      <div id="searchMeta" class="summary" hidden></div>
-      <div id="resultsList" class="card-list"></div>
-    </section>
   </main>
+
+  <aside id="searchPanel" class="search-panel" aria-labelledby="searchPanelTitle" aria-hidden="true">
+    <div class="search-panel-backdrop" data-close-search></div>
+    <section class="search-sheet">
+      <div class="sheet-header">
+        <div>
+          <h2 id="searchPanelTitle">Технический поиск фрагментов</h2>
+          <p>Дополнительный режим для просмотра найденного текста и метрик.</p>
+        </div>
+        <button id="closeSearchPanel" class="icon-button" type="button" aria-label="Закрыть">×</button>
+      </div>
+
+      <form id="technicalSearchForm" class="technical-form">
+        <label for="technicalQueryInput">Вопрос</label>
+        <textarea id="technicalQueryInput" rows="3" placeholder="Введите запрос для поиска фрагментов"></textarea>
+        <div class="technical-actions">
+          <label for="technicalTopKInput">
+            Количество
+            <input id="technicalTopKInput" type="number" min="1" max="20" value="5">
+          </label>
+          <button id="technicalSearchButton" type="submit">Найти фрагменты</button>
+        </div>
+      </form>
+
+      <div id="technicalStatus" class="status muted">Поиск еще не выполнялся.</div>
+      <div id="technicalResults" class="technical-results"></div>
+    </section>
+  </aside>
 </body>
 </html>

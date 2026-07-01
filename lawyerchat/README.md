@@ -2,7 +2,7 @@
 
 LawyerChat Retrieval MVP — учебное приложение для семантического поиска и RAG-ответов по вручную загруженным юридическим документам.
 
-Приложение индексирует локальные `.txt` и `.jsonl` документы, считает embeddings локальной моделью `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2` и возвращает релевантные фрагменты через API, RAG-чат или простой frontend.
+Приложение преобразует локальные `.htm/.html` документы из КонсультантПлюс в структурированный `.jsonl`, индексирует JSONL-фрагменты, считает embeddings локальной моделью `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2` и возвращает релевантные фрагменты через API, RAG-чат или простой frontend.
 
 ## Важное предупреждение
 
@@ -14,7 +14,9 @@ LawyerChat Retrieval MVP — учебное приложение для сема
 - PostgreSQL + pgvector
 - SQLAlchemy ORM
 - `sentence-transformers` для локальных embeddings
-- локальные `.txt` и `.jsonl` документы в `backend/data/legal_docs/`
+- исходные `.htm/.html` документы в `backend/data/raw_html/`
+- структурированные `.jsonl` документы в `backend/data/legal_docs/`
+- legacy/fallback `.txt` документы в `backend/data/legal_docs/`
 - статический frontend без React и сборки
 
 ## Запуск PostgreSQL
@@ -78,32 +80,68 @@ http://localhost:8000/health
 
 ## Добавление юридических документов
 
-Положите документы вручную в:
+Рекомендуемый pipeline для нормативно-правового корпуса:
 
 ```text
-backend/data/legal_docs/
+HTML/HTM из КонсультантПлюс
+→ backend/data/raw_html/
+→ scripts.convert_html_to_jsonl
+→ backend/data/legal_docs/*.jsonl
+→ scripts.ingest_documents
+→ PostgreSQL + pgvector
+→ /api/search и /api/chat
 ```
 
-Поддерживаются два формата:
+Положите исходные HTML/HTM файлы вручную в:
 
-- `.txt` — простой режим. Файл читается целиком и разбивается на чанки через `split_legal_text`.
-- `.jsonl` — рекомендуемый структурированный формат для юридического корпуса. Каждая строка считается отдельным готовым юридическим фрагментом и не смешивается с соседними строками.
+```text
+backend/data/raw_html/
+```
 
-Примеры файлов:
+Эти файлы не индексируются напрямую. Сначала преобразуйте их в JSONL.
 
-- `trudovoy_kodeks.txt`
-- `grazhdanskiy_kodeks.txt`
-- `example_legal_corpus.jsonl`
+Поддерживаемые форматы в `backend/data/legal_docs/`:
+
+- `.jsonl` — рекомендуемый структурированный формат. Каждая строка считается отдельным готовым юридическим фрагментом, обычно одной статьей.
+- `.txt` — legacy/fallback режим. Файл читается целиком и разбивается на чанки через `split_legal_text`, но для нормативного корпуса TXT больше не рекомендуется, потому что теряет иерархическую структуру разделов, глав и статей.
 
 Пример JSONL-строки:
 
 ```json
-{"document_id":"tk_rf","document_title":"Трудовой кодекс Российской Федерации","filename":"trudovoy_kodeks.jsonl","section_title":"Раздел III. Трудовой договор","chapter_title":"Глава 13. Прекращение трудового договора","article_number":"80","article_title":"Расторжение трудового договора по инициативе работника","text":"Работник имеет право расторгнуть трудовой договор...","referenced_articles":[],"source_url":null}
+{"document_id":"tk_rf","document_title":"Трудовой кодекс Российской Федерации","source_format":"html","source_filename":"Трудовой кодекс Российской Федерации от 30.12.2001 N 197-ФЗ.htm","section_title":"Раздел III. Трудовой договор","subsection_title":null,"chapter_title":"Глава 13. Прекращение трудового договора","paragraph_title":null,"article_number":"80","article_title":"Расторжение трудового договора по инициативе работника","text":"Статья 80. Расторжение трудового договора по инициативе работника\n\nРаботник имеет право расторгнуть трудовой договор...","referenced_articles":["77"],"source_url":null}
 ```
 
-Для JSONL в базу сохраняются существующие поля чанка: `content` из `text`, `article_number`, `article_title`, `referenced_articles` и `embedding`. Поля `section_title`, `chapter_title` и `source_url` можно держать в корпусе заранее: ingestion спокойно их прочитает, но пока не сохраняет в отдельные колонки.
-
 Документы не скачиваются автоматически и сайты не парсятся.
+
+## Конвертация HTML в JSONL
+
+Из папки `backend` для одного документа:
+
+```powershell
+python -m scripts.convert_html_to_jsonl `
+  --input "data/raw_html/Трудовой кодекс Российской Федерации от 30.12.2001 N 197-ФЗ.htm" `
+  --output "data/legal_docs/trudovoy_kodeks_rf.jsonl" `
+  --document-id "tk_rf" `
+  --document-title "Трудовой кодекс Российской Федерации"
+```
+
+Пакетная конвертация всей папки:
+
+```powershell
+python -m scripts.convert_html_to_jsonl `
+  --input-dir "data/raw_html" `
+  --output-dir "data/legal_docs"
+```
+
+Скрипт читает UTF-8, при необходимости пробует cp1251, удаляет служебные HTML-теги и выделяет структуру:
+
+- `Раздел ...`
+- `Подраздел ...`
+- `Глава ...`
+- `Параграф ...`
+- `Статья N. Название статьи`
+
+Каждая найденная статья становится отдельной JSONL-строкой. Текст статьи включает заголовок статьи и абзацы до следующей статьи.
 
 ## Индексация
 
@@ -125,7 +163,7 @@ POST http://localhost:8000/api/documents/reindex
 Invoke-RestMethod -Method Post -Uri http://localhost:8000/api/documents/reindex
 ```
 
-Индексация перечитывает `.txt` и `.jsonl` файлы, удаляет старый `Document` с тем же `filename`, считает embeddings только по тексту фрагмента и сохраняет данные в PostgreSQL + pgvector. Поле `chunks.embedding` имеет тип `vector(384)`.
+Индексация перечитывает `.jsonl` и legacy `.txt` файлы из `backend/data/legal_docs/`, удаляет старый `Document` с тем же `filename`, считает embeddings только по тексту фрагмента и сохраняет данные в PostgreSQL + pgvector. Поле `chunks.embedding` имеет тип `vector(384)`.
 
 ## Поиск
 
@@ -155,11 +193,22 @@ POST /api/search
 - `filename`
 - `chunk_index`
 - `content`
+- `article_number`
+- `article_title`
+- `section_title`
+- `subsection_title`
+- `chapter_title`
+- `paragraph_title`
+- `source_format`
+- `source_filename`
 - `distance`
+- `similarity`
 
-В ответе нет сгенерированной юридической консультации, только найденные фрагменты.
+В ответе поиска нет сгенерированной юридической консультации, только найденные фрагменты.
 
 ## Frontend
+
+Основной frontend теперь выглядит как чат-бот: вопрос отправляется в `POST /api/chat`, ответ отображается в ленте сообщений, а использованные нормы показываются отдельными карточками под ответом. Технический retrieval-режим `POST /api/search` открыт через маленькую кнопку `Поиск` в правом верхнем углу.
 
 Можно открыть файл напрямую:
 

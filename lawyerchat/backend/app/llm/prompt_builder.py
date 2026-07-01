@@ -4,7 +4,9 @@ SYSTEM_PROMPT = """
 Не используй сведения вне контекста и не додумывай отсутствующие нормы.
 Если в контексте нет ответа, скажи: "В загруженных документах недостаточно информации для ответа."
 Не называй ответ юридической консультацией.
-В конце ответа перечисли источники: файл, статья, название статьи, chunk_index.
+Формулируй ответ понятным языком.
+Не перечисляй технические источники, названия файлов, chunk_index или служебные идентификаторы.
+Источники будут показаны отдельно интерфейсом.
 """.strip()
 
 
@@ -30,15 +32,13 @@ def build_rag_prompt(query: str, chunks: list[dict]) -> str:
         )
         source_lines = [
             f"[Источник {index}]",
-            f"Файл: {chunk.get('filename') or 'не указан'}",
-            _format_optional_source_line("Исходный файл", chunk.get("source_filename")),
+            _format_optional_source_line("Документ", chunk.get("document_title")),
             _format_optional_source_line("Раздел", chunk.get("section_title")),
             _format_optional_source_line("Подраздел", chunk.get("subsection_title")),
             _format_optional_source_line("Глава", chunk.get("chapter_title")),
             _format_optional_source_line("Параграф", chunk.get("paragraph_title")),
             f"Статья: {article_number}",
             f"Название статьи: {article_title}",
-            f"chunk_index: {chunk.get('chunk_index')}",
             f"Ссылки на статьи: {referenced_articles}",
             "Текст:",
             chunk.get("content") or "",
@@ -56,7 +56,7 @@ def build_rag_prompt(query: str, chunks: list[dict]) -> str:
             "- Если ответа нет в контексте, скажи, что в загруженных документах недостаточно информации.",
             "- Ответ должен быть на русском языке.",
             "- Не называй ответ юридической консультацией.",
-            "- Укажи источники: файл, статья, название статьи, chunk_index.",
+            "- Не добавляй технический список источников в текст ответа.",
             "",
             f"Вопрос: {query}",
             "",
@@ -69,6 +69,7 @@ def build_rag_prompt(query: str, chunks: list[dict]) -> str:
 def build_sources(chunks: list[dict]) -> list[dict]:
     return [
         {
+            "document_title": chunk.get("document_title"),
             "filename": chunk.get("filename"),
             "article_number": chunk.get("article_number"),
             "article_title": chunk.get("article_title"),

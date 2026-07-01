@@ -17,6 +17,7 @@ class SearchResult(BaseModel):
     chunk_id: int
     document_id: int
     filename: str
+    document_title: str | None = None
     chunk_index: int
     content: str
     article_number: str | None = None

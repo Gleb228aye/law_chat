@@ -9,6 +9,9 @@ data/*
 !data/raw_html/
 data/raw_html/*
 !data/raw_html/README.md
+!data/raw_docx/
+data/raw_docx/*
+!data/raw_docx/README.md
 *.log
 .DS_Store
 .idea/

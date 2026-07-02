@@ -11,13 +11,23 @@ class RAGChatService:
     def __init__(self, db: Session) -> None:
         self.db = db
 
-    def answer(self, query: str, top_k: int) -> dict:
+    def answer(
+        self,
+        query: str,
+        top_k: int,
+        retrieval_mode: str | None = None,
+    ) -> dict:
         if not settings.llm_api_key:
             raise LLMConfigurationError("LLM is not configured")
 
         embedder = Embedder()
         retriever = Retriever(db=self.db, embedder=embedder)
-        chunks = retriever.search(query=query, top_k=top_k)
+        effective_mode = (retrieval_mode or settings.retrieval_mode).casefold()
+        chunks = retriever.search(
+            query=query,
+            top_k=top_k,
+            retrieval_mode=effective_mode,
+        )
 
         prompt = build_rag_prompt(query=query, chunks=chunks)
         answer = LLMClient().generate_answer(
@@ -29,4 +39,5 @@ class RAGChatService:
             "answer": answer,
             "sources": build_sources(chunks),
             "total_sources": len(chunks),
+            "retrieval_mode": effective_mode,
         }

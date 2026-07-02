@@ -16,6 +16,7 @@ def chat(request: ChatRequest, db: Session = Depends(get_db)):
         result = RAGChatService(db=db).answer(
             query=request.query,
             top_k=request.top_k,
+            retrieval_mode=request.retrieval_mode,
         )
     except LLMConfigurationError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc

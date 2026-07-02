@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -11,7 +13,7 @@ class Settings(BaseSettings):
     chunk_size: int = 1200
     chunk_overlap: int = 200
     top_k: int = 5
-    retrieval_mode: str = "hybrid"
+    retrieval_mode: Literal["semantic", "hybrid"] = "hybrid"
     hybrid_semantic_weight: float = 0.60
     hybrid_keyword_weight: float = 0.30
     hybrid_metadata_weight: float = 0.10

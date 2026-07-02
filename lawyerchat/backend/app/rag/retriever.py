@@ -375,12 +375,17 @@ class Retriever:
         ).mappings()
         return self._serialize_rows(rows)
 
-    def search(self, query: str, top_k: int = 5) -> list[dict]:
+    def search(
+        self,
+        query: str,
+        top_k: int = 5,
+        retrieval_mode: str | None = None,
+    ) -> list[dict]:
         from app.config import settings
 
-        mode = settings.retrieval_mode.casefold()
+        mode = (retrieval_mode or settings.retrieval_mode).casefold()
         if mode == "semantic":
             return self.search_semantic(query, top_k)
         if mode == "hybrid":
             return self.search_hybrid(query, top_k)
-        raise ValueError(f"Unsupported retrieval mode: {settings.retrieval_mode}")
+        raise ValueError(f"Unsupported retrieval mode: {mode}")

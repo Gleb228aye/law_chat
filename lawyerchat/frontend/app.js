@@ -12,6 +12,7 @@ const topKInput = document.getElementById("topKInput");
 const sendButton = document.getElementById("sendButton");
 const chatMessages = document.getElementById("chatMessages");
 const clearChatHistoryButton = document.getElementById("clear-chat-history-button");
+const retrievalModeSelect = document.getElementById("retrieval-mode-select");
 
 const openSearchPanel = document.getElementById("openSearchPanel");
 const closeSearchPanel = document.getElementById("closeSearchPanel");
@@ -90,20 +91,47 @@ function sanitizeHistorySource(source) {
   return Object.keys(sanitized).length ? sanitized : null;
 }
 
-function createHistoryMessage(role, content, sources = []) {
+function normalizeRetrievalMode(value, fallback = null) {
+  if (value === "semantic" || value === "hybrid") {
+    return value;
+  }
+  return fallback;
+}
+
+function selectedRetrievalMode() {
+  return normalizeRetrievalMode(retrievalModeSelect?.value, "hybrid");
+}
+
+function retrievalModeLabel(mode) {
+  return mode === "semantic" ? "семантический" : "гибридный";
+}
+
+function createHistoryMessage(
+  role,
+  content,
+  sources = [],
+  retrievalMode = null
+) {
   const normalizedRole = role === "assistant" ? "assistant" : "user";
   const normalizedSources =
     normalizedRole === "assistant" && Array.isArray(sources)
       ? sources.map(sanitizeHistorySource).filter(Boolean)
       : [];
 
-  return {
+  const message = {
     id: createMessageId(),
     role: normalizedRole,
     content: String(content ?? ""),
     sources: normalizedSources,
     createdAt: new Date().toISOString()
   };
+
+  const normalizedMode = normalizeRetrievalMode(retrievalMode);
+  if (normalizedRole === "assistant" && normalizedMode) {
+    message.retrievalMode = normalizedMode;
+  }
+
+  return message;
 }
 
 function saveChatHistory() {
@@ -145,7 +173,8 @@ function loadChatHistory() {
         const normalized = createHistoryMessage(
           message.role,
           message.content,
-          message.sources
+          message.sources,
+          message.retrievalMode
         );
 
         if (typeof message.id === "string" && message.id) {
@@ -178,7 +207,12 @@ function addMessageToHistory(message) {
   }
 
   chatHistory.push(
-    createHistoryMessage(message.role, message.content, message.sources)
+    createHistoryMessage(
+      message.role,
+      message.content,
+      message.sources,
+      message.retrievalMode
+    )
   );
   chatHistory = chatHistory.slice(-MAX_CHAT_HISTORY_MESSAGES);
 }
@@ -338,9 +372,22 @@ function renderSources(sources, hostRow) {
   hostRow.appendChild(block);
 }
 
+function renderRetrievalMode(mode, hostRow) {
+  const normalizedMode = normalizeRetrievalMode(mode);
+  if (!normalizedMode) {
+    return;
+  }
+
+  const note = document.createElement("div");
+  note.className = "retrieval-mode-note";
+  note.textContent = `Режим поиска: ${retrievalModeLabel(normalizedMode)}`;
+  hostRow.appendChild(note);
+}
+
 function renderChatMessage(message) {
   const row = appendMessage(message.role, message.content);
   if (message.role === "assistant") {
+    renderRetrievalMode(message.retrievalMode, row);
     renderSources(Array.isArray(message.sources) ? message.sources : [], row);
   }
   return row;
@@ -379,6 +426,7 @@ async function submitChat(event) {
 
   const query = chatInput.value.trim();
   const topK = normalizeTopK(topKInput.value);
+  const retrievalMode = selectedRetrievalMode();
   topKInput.value = topK;
 
   if (!query) {
@@ -402,16 +450,27 @@ async function submitChat(event) {
       method: "POST",
       body: JSON.stringify({
         query,
-        top_k: topK
+        top_k: topK,
+        retrieval_mode: retrievalMode
       })
     });
 
     const answer = data?.answer || "Backend вернул пустой ответ.";
     const sources = Array.isArray(data?.sources) ? data.sources : [];
+    const usedRetrievalMode = normalizeRetrievalMode(
+      data?.retrieval_mode,
+      retrievalMode
+    );
 
     replaceMessage(pendingRow, "assistant", answer);
+    renderRetrievalMode(usedRetrievalMode, pendingRow);
     renderSources(sources, pendingRow);
-    addMessageToHistory({ role: "assistant", content: answer, sources });
+    addMessageToHistory({
+      role: "assistant",
+      content: answer,
+      sources,
+      retrievalMode: usedRetrievalMode
+    });
     saveChatHistory();
   } catch (error) {
     const message =
@@ -456,7 +515,11 @@ function renderTechnicalResults(data) {
     return;
   }
 
-  setTechnicalStatus(`Найдено фрагментов: ${data.total_results ?? results.length}.`);
+  const mode = normalizeRetrievalMode(data.retrieval_mode);
+  const modeText = mode ? ` Режим: ${retrievalModeLabel(mode)}.` : "";
+  setTechnicalStatus(
+    `Найдено фрагментов: ${data.total_results ?? results.length}.${modeText}`
+  );
 
   results.forEach((item, index) => {
     const card = document.createElement("article");
@@ -484,6 +547,18 @@ function renderTechnicalResults(data) {
     if (distance !== null) {
       appendTechnicalMeta(meta, `distance: ${distance}`);
     }
+    [
+      ["hybrid_score", item.hybrid_score],
+      ["semantic_score", item.semantic_score],
+      ["keyword_score", item.keyword_score],
+      ["article_boost", item.article_boost],
+      ["document_boost", item.document_boost]
+    ].forEach(([label, value]) => {
+      const formatted = formatNumber(value, 4);
+      if (formatted !== null) {
+        appendTechnicalMeta(meta, `${label}: ${formatted}`);
+      }
+    });
 
     card.appendChild(meta);
 
@@ -507,6 +582,7 @@ async function submitTechnicalSearch(event) {
 
   const query = technicalQueryInput.value.trim();
   const topK = normalizeTopK(technicalTopKInput.value);
+  const retrievalMode = selectedRetrievalMode();
   technicalTopKInput.value = topK;
 
   clearElement(technicalResults);
@@ -525,7 +601,8 @@ async function submitTechnicalSearch(event) {
       method: "POST",
       body: JSON.stringify({
         query,
-        top_k: topK
+        top_k: topK,
+        retrieval_mode: retrievalMode
       })
     });
     renderTechnicalResults(data || {});

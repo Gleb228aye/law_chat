@@ -38,6 +38,13 @@
         <label class="sr-only" for="chatInput">Вопрос</label>
         <textarea id="chatInput" name="query" rows="2" placeholder="Например: как уволиться по собственному желанию?" required></textarea>
         <div class="composer-actions">
+          <label class="retrieval-mode-control" for="retrieval-mode-select">
+            <span>Режим поиска</span>
+            <select id="retrieval-mode-select">
+              <option value="hybrid" selected>Гибридный</option>
+              <option value="semantic">Семантический</option>
+            </select>
+          </label>
           <label class="top-k-control" for="topKInput">
             Норм
             <input id="topKInput" name="topK" type="number" min="1" max="20" value="5">

@@ -1,9 +1,12 @@
+from typing import Literal
+
 from pydantic import BaseModel, Field, field_validator
 
 
 class SearchRequest(BaseModel):
     query: str
     top_k: int = Field(default=5, ge=1, le=20)
+    retrieval_mode: Literal["semantic", "hybrid"] | None = None
 
     @field_validator("query")
     @classmethod
@@ -43,4 +46,4 @@ class SearchResponse(BaseModel):
     results: list[SearchResult]
     total_results: int
     note: str
-    retrieval_mode: str | None = None
+    retrieval_mode: Literal["semantic", "hybrid"] | None = None

@@ -1,9 +1,12 @@
+from typing import Literal
+
 from pydantic import BaseModel, Field, field_validator
 
 
 class ChatRequest(BaseModel):
     query: str
     top_k: int = Field(default=5, ge=1, le=20)
+    retrieval_mode: Literal["semantic", "hybrid"] | None = None
 
     @field_validator("query")
     @classmethod
@@ -33,3 +36,4 @@ class ChatResponse(BaseModel):
     answer: str
     sources: list[ChatSource]
     total_sources: int
+    retrieval_mode: Literal["semantic", "hybrid"]

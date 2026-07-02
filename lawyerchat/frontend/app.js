@@ -1,10 +1,17 @@
 const API_BASE_URL = "http://localhost:8000";
+const CHAT_HISTORY_STORAGE_KEY = "lawyerchat.chatHistory.v1";
+const MAX_CHAT_HISTORY_MESSAGES = 100;
+const WELCOME_MESSAGE =
+  "Здравствуйте. Задайте вопрос по загруженным нормативным документам, и я отвечу по найденному контексту.";
+
+let chatHistory = [];
 
 const chatForm = document.getElementById("chatForm");
 const chatInput = document.getElementById("chatInput");
 const topKInput = document.getElementById("topKInput");
 const sendButton = document.getElementById("sendButton");
 const chatMessages = document.getElementById("chatMessages");
+const clearChatHistoryButton = document.getElementById("clear-chat-history-button");
 
 const openSearchPanel = document.getElementById("openSearchPanel");
 const closeSearchPanel = document.getElementById("closeSearchPanel");
@@ -45,6 +52,135 @@ function clearElement(element) {
   while (element.firstChild) {
     element.removeChild(element.firstChild);
   }
+}
+
+function createMessageId() {
+  if (globalThis.crypto && typeof globalThis.crypto.randomUUID === "function") {
+    return globalThis.crypto.randomUUID();
+  }
+
+  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function sanitizeHistorySource(source) {
+  if (!source || typeof source !== "object" || Array.isArray(source)) {
+    return null;
+  }
+
+  const allowedFields = [
+    "document_title",
+    "filename",
+    "source_filename",
+    "section_title",
+    "subsection_title",
+    "chapter_title",
+    "paragraph_title",
+    "article_number",
+    "article_title"
+  ];
+  const sanitized = {};
+
+  allowedFields.forEach((field) => {
+    const value = source[field];
+    if (typeof value === "string" || typeof value === "number") {
+      sanitized[field] = value;
+    }
+  });
+
+  return Object.keys(sanitized).length ? sanitized : null;
+}
+
+function createHistoryMessage(role, content, sources = []) {
+  const normalizedRole = role === "assistant" ? "assistant" : "user";
+  const normalizedSources =
+    normalizedRole === "assistant" && Array.isArray(sources)
+      ? sources.map(sanitizeHistorySource).filter(Boolean)
+      : [];
+
+  return {
+    id: createMessageId(),
+    role: normalizedRole,
+    content: String(content ?? ""),
+    sources: normalizedSources,
+    createdAt: new Date().toISOString()
+  };
+}
+
+function saveChatHistory() {
+  chatHistory = chatHistory.slice(-MAX_CHAT_HISTORY_MESSAGES);
+
+  try {
+    localStorage.setItem(
+      CHAT_HISTORY_STORAGE_KEY,
+      JSON.stringify(chatHistory)
+    );
+  } catch (error) {
+    // localStorage может быть отключён политикой браузера или переполнен.
+  }
+}
+
+function loadChatHistory() {
+  chatHistory = [];
+
+  try {
+    const storedHistory = localStorage.getItem(CHAT_HISTORY_STORAGE_KEY);
+    if (!storedHistory) {
+      return;
+    }
+
+    const parsedHistory = JSON.parse(storedHistory);
+    if (!Array.isArray(parsedHistory)) {
+      throw new Error("Invalid chat history format");
+    }
+
+    chatHistory = parsedHistory
+      .filter(
+        (message) =>
+          message &&
+          typeof message === "object" &&
+          (message.role === "user" || message.role === "assistant") &&
+          typeof message.content === "string"
+      )
+      .map((message) => {
+        const normalized = createHistoryMessage(
+          message.role,
+          message.content,
+          message.sources
+        );
+
+        if (typeof message.id === "string" && message.id) {
+          normalized.id = message.id;
+        }
+        if (typeof message.createdAt === "string" && message.createdAt) {
+          normalized.createdAt = message.createdAt;
+        }
+
+        return normalized;
+      })
+      .slice(-MAX_CHAT_HISTORY_MESSAGES);
+
+    if (parsedHistory.length > MAX_CHAT_HISTORY_MESSAGES) {
+      saveChatHistory();
+    }
+  } catch (error) {
+    chatHistory = [];
+    try {
+      localStorage.removeItem(CHAT_HISTORY_STORAGE_KEY);
+    } catch (storageError) {
+      // Приложение продолжает работать, даже если localStorage недоступен.
+    }
+  }
+}
+
+function addMessageToHistory(message) {
+  if (!message || !["user", "assistant"].includes(message.role)) {
+    return;
+  }
+
+  chatHistory.push(
+    createHistoryMessage(message.role, message.content, message.sources)
+  );
+  chatHistory = chatHistory.slice(-MAX_CHAT_HISTORY_MESSAGES);
 }
 
 function normalizeTopK(value) {
@@ -202,6 +338,42 @@ function renderSources(sources, hostRow) {
   hostRow.appendChild(block);
 }
 
+function renderChatMessage(message) {
+  const row = appendMessage(message.role, message.content);
+  if (message.role === "assistant") {
+    renderSources(Array.isArray(message.sources) ? message.sources : [], row);
+  }
+  return row;
+}
+
+function restoreChatHistory() {
+  if (!chatHistory.length) {
+    return;
+  }
+
+  clearElement(chatMessages);
+  chatHistory.forEach(renderChatMessage);
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+function renderWelcomeMessage() {
+  appendMessage("assistant", WELCOME_MESSAGE);
+}
+
+function clearChatHistory() {
+  chatHistory = [];
+
+  try {
+    localStorage.removeItem(CHAT_HISTORY_STORAGE_KEY);
+  } catch (error) {
+    // Очистка UI всё равно должна работать без доступа к localStorage.
+  }
+
+  clearElement(chatMessages);
+  renderWelcomeMessage();
+  chatInput.focus();
+}
+
 async function submitChat(event) {
   event.preventDefault();
 
@@ -215,8 +387,11 @@ async function submitChat(event) {
   }
 
   appendMessage("user", query);
+  addMessageToHistory({ role: "user", content: query, sources: [] });
+  saveChatHistory();
   chatInput.value = "";
   sendButton.disabled = true;
+  clearChatHistoryButton.disabled = true;
 
   const pendingRow = appendMessage("assistant", "Формируется ответ...", {
     loading: true
@@ -231,12 +406,13 @@ async function submitChat(event) {
       })
     });
 
-    replaceMessage(
-      pendingRow,
-      "assistant",
-      data?.answer || "Backend вернул пустой ответ."
-    );
-    renderSources(Array.isArray(data?.sources) ? data.sources : [], pendingRow);
+    const answer = data?.answer || "Backend вернул пустой ответ.";
+    const sources = Array.isArray(data?.sources) ? data.sources : [];
+
+    replaceMessage(pendingRow, "assistant", answer);
+    renderSources(sources, pendingRow);
+    addMessageToHistory({ role: "assistant", content: answer, sources });
+    saveChatHistory();
   } catch (error) {
     const message =
       error.status === 503
@@ -245,6 +421,7 @@ async function submitChat(event) {
     replaceMessage(pendingRow, "assistant", message, { error: true });
   } finally {
     sendButton.disabled = false;
+    clearChatHistoryButton.disabled = false;
     chatInput.focus();
   }
 }
@@ -360,6 +537,11 @@ async function submitTechnicalSearch(event) {
 }
 
 chatForm.addEventListener("submit", submitChat);
+clearChatHistoryButton.addEventListener("click", () => {
+  if (confirm("Очистить локальную историю диалога?")) {
+    clearChatHistory();
+  }
+});
 openSearchPanel.addEventListener("click", openTechnicalSearch);
 closeSearchPanel.addEventListener("click", closeTechnicalSearch);
 searchPanel.addEventListener("click", (event) => {
@@ -380,3 +562,6 @@ document.addEventListener("keydown", (event) => {
     closeTechnicalSearch();
   }
 });
+
+loadChatHistory();
+restoreChatHistory();

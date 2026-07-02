@@ -21,6 +21,11 @@
     </header>
 
     <section class="chat-panel" aria-label="Чат LawyerChat">
+      <div class="chat-history-controls">
+        <span>История хранится только в браузере пользователя и не передаётся на сервер.</span>
+        <button id="clear-chat-history-button" class="ghost-button history-clear-button" type="button">Очистить историю</button>
+      </div>
+
       <div id="chatMessages" class="chat-messages" aria-live="polite">
         <article class="message-row assistant">
           <div class="message-bubble">

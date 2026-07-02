@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
+from app.config import settings
 from app.db import get_db
 from app.models.chunk import Chunk
 from app.rag.embedder import Embedder
@@ -11,7 +12,7 @@ from app.schemas.search import SearchRequest, SearchResponse
 router = APIRouter()
 
 RETRIEVAL_NOTE = (
-    "Это результаты семантического поиска по загруженным документам. "
+    "Это результаты поиска по загруженным документам. "
     "Они не являются юридической консультацией."
 )
 
@@ -24,6 +25,7 @@ def search_documents(request: SearchRequest, db: Session = Depends(get_db)):
             query=request.query,
             results=[],
             total_results=0,
+            retrieval_mode=settings.retrieval_mode,
             note=(
                 "В базе пока нет проиндексированных фрагментов. "
                 "Добавьте .jsonl документы в backend/data/legal_docs "
@@ -41,4 +43,5 @@ def search_documents(request: SearchRequest, db: Session = Depends(get_db)):
         results=results,
         total_results=len(results),
         note=RETRIEVAL_NOTE,
+        retrieval_mode=settings.retrieval_mode,
     )

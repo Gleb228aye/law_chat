@@ -2,7 +2,7 @@
 
 LawyerChat Retrieval MVP — учебное приложение для семантического поиска и RAG-ответов по вручную загруженным юридическим документам.
 
-Приложение преобразует локальные `.htm/.html` документы из КонсультантПлюс в структурированный `.jsonl`, индексирует JSONL-фрагменты, считает embeddings локальной моделью `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2` и возвращает релевантные фрагменты через API, RAG-чат или простой frontend.
+Приложение преобразует локальные `.htm/.html` и `.docx` документы из КонсультантПлюс в структурированный `.jsonl`, индексирует JSONL-фрагменты, считает embeddings локальной моделью `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2` и возвращает релевантные фрагменты через API, RAG-чат или простой frontend.
 
 ## Важное предупреждение
 
@@ -15,6 +15,7 @@ LawyerChat Retrieval MVP — учебное приложение для сема
 - SQLAlchemy ORM
 - `sentence-transformers` для локальных embeddings
 - исходные `.htm/.html` документы в `backend/data/raw_html/`
+- исходные `.docx` документы в `backend/data/raw_docx/`
 - структурированные `.jsonl` документы в `backend/data/legal_docs/`
 - legacy/fallback `.txt` документы в `backend/data/legal_docs/`
 - статический frontend без React и сборки
@@ -80,25 +81,34 @@ http://localhost:8000/health
 
 ## Добавление юридических документов
 
-Рекомендуемый pipeline для нормативно-правового корпуса:
+Поддерживаются две ветки подготовки нормативно-правового корпуса:
 
 ```text
 HTML/HTM из КонсультантПлюс
 → backend/data/raw_html/
 → scripts.convert_html_to_jsonl
 → backend/data/legal_docs/*.jsonl
+
+DOCX из КонсультантПлюс
+→ backend/data/raw_docx/
+→ scripts.convert_docx_to_jsonl
+→ backend/data/legal_docs/*.jsonl
+
+Общий этап:
+backend/data/legal_docs/*.jsonl
 → scripts.ingest_documents
 → PostgreSQL + pgvector
 → /api/search и /api/chat
 ```
 
-Положите исходные HTML/HTM файлы вручную в:
+Положите исходные HTML/HTM или DOCX-файлы вручную в соответствующую папку:
 
 ```text
 backend/data/raw_html/
+backend/data/raw_docx/
 ```
 
-Эти файлы не индексируются напрямую. Сначала преобразуйте их в JSONL.
+Эти файлы не индексируются напрямую. Сначала преобразуйте их в JSONL соответствующим конвертером.
 
 Поддерживаемые форматы в `backend/data/legal_docs/`:
 
@@ -143,6 +153,28 @@ python -m scripts.convert_html_to_jsonl `
 
 Каждая найденная статья становится отдельной JSONL-строкой. Текст статьи включает заголовок статьи и абзацы до следующей статьи.
 
+## Конвертация DOCX в JSONL
+
+Из папки `backend` для одного документа:
+
+```powershell
+python -m scripts.convert_docx_to_jsonl `
+  --input "data/raw_docx/Семейный кодекс Российской Федерации.docx" `
+  --output "data/legal_docs/semeynyy_kodeks_rf.jsonl" `
+  --document-id "sk_rf" `
+  --document-title "Семейный кодекс Российской Федерации"
+```
+
+Пакетная конвертация всей папки:
+
+```powershell
+python -m scripts.convert_docx_to_jsonl `
+  --input-dir "data/raw_docx" `
+  --output-dir "data/legal_docs"
+```
+
+DOCX-конвертер читает абзацы в порядке документа, нормализует пробелы и выделяет разделы, подразделы, главы, параграфы и статьи. Для известных документов автоматически выбираются идентификатор, название и имя выходного JSONL.
+
 ## Индексация
 
 Из папки `backend`:
@@ -164,6 +196,28 @@ Invoke-RestMethod -Method Post -Uri http://localhost:8000/api/documents/reindex
 ```
 
 Индексация перечитывает `.jsonl` и legacy `.txt` файлы из `backend/data/legal_docs/`, удаляет старый `Document` с тем же `filename`, считает embeddings только по тексту фрагмента и сохраняет данные в PostgreSQL + pgvector. Поле `chunks.embedding` имеет тип `vector(384)`.
+
+## Тестирование качества retrieval
+
+Контрольные вопросы находятся в `backend/data/evaluation/retrieval_cases.json`. Оценка использует текущие `Embedder` и `Retriever`, обращается к PostgreSQL + pgvector и не вызывает LLM.
+
+Запуск из папки `backend`:
+
+```powershell
+python -m scripts.evaluate_retrieval `
+  --cases "data/evaluation/retrieval_cases.json" `
+  --top-k 20 `
+  --output-dir "reports"
+```
+
+Скрипт рассчитывает Top-1, Top-3, Top-5, Top-10 и Top-20 accuracy, MRR, позицию первого правильного результата и среднюю similarity первого результата. Отдельные метрики группируются по законам. Если глубина `top_k` меньше порога метрики, отчёт отмечает такую метрику как не рассчитанную.
+
+Отчеты сохраняются в `backend/reports/`:
+
+- `retrieval_results.csv`;
+- `retrieval_results.json`;
+- `retrieval_report.md`;
+- `retrieval_report.docx`.
 
 ## Поиск
 
@@ -285,5 +339,5 @@ docker compose up -d postgres
 - генерацию ответа на основе найденных фрагментов
 - ссылки на источники
 - историю диалогов
-- загрузку PDF/DOCX
+- загрузку PDF
 - улучшенные индексы pgvector

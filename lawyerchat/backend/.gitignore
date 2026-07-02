@@ -12,6 +12,10 @@ data/raw_html/*
 !data/raw_docx/
 data/raw_docx/*
 !data/raw_docx/README.md
+!data/evaluation/
+data/evaluation/*
+!data/evaluation/README.md
+!data/evaluation/retrieval_cases.json
 *.log
 .DS_Store
 .idea/

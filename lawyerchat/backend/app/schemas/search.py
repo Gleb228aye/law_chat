@@ -31,6 +31,11 @@ class SearchResult(BaseModel):
     referenced_articles: list[str] = Field(default_factory=list)
     distance: float
     similarity: float
+    semantic_score: float | None = None
+    keyword_score: float | None = None
+    hybrid_score: float | None = None
+    article_boost: float | None = None
+    document_boost: float | None = None
 
 
 class SearchResponse(BaseModel):
@@ -38,3 +43,4 @@ class SearchResponse(BaseModel):
     results: list[SearchResult]
     total_results: int
     note: str
+    retrieval_mode: str | None = None

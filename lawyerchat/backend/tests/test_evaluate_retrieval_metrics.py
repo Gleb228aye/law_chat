@@ -1,6 +1,10 @@
 import unittest
 
-from scripts.evaluate_retrieval import evaluate_case_results
+from scripts.evaluate_retrieval import (
+    calculate_question_type_metrics,
+    calculate_summary_metrics,
+    evaluate_case_results,
+)
 
 
 CASE = {
@@ -23,6 +27,158 @@ def result(article_number: str, document_title: str = "Другой кодекс
 
 
 class RetrievalMetricsTests(unittest.TestCase):
+    def test_primary_source_match_counts_as_success(self) -> None:
+        case = {
+            "id": "new_001",
+            "law": "Трудовой кодекс Российской Федерации",
+            "question": "Вопрос",
+            "expected_sources": [
+                {
+                    "document_id": "tk_rf",
+                    "article_number": "80",
+                    "relevance": "primary",
+                    "reason": "Основная норма",
+                }
+            ],
+        }
+
+        evaluation = evaluate_case_results(
+            case,
+            [result("80", "Трудовой кодекс Российской Федерации")],
+        )
+
+        self.assertTrue(evaluation["hit_top_1"])
+        self.assertEqual("primary", evaluation["matched_relevance"])
+        self.assertFalse(evaluation["partial_match"])
+
+    def test_secondary_source_match_counts_as_success(self) -> None:
+        case = {
+            "id": "new_002",
+            "law": "Семейный кодекс Российской Федерации",
+            "question": "Вопрос",
+            "expected_sources": [
+                {
+                    "document_id": "sk_rf",
+                    "article_number": "21",
+                    "relevance": "secondary",
+                    "reason": "Дополнительная релевантная норма",
+                }
+            ],
+        }
+
+        evaluation = evaluate_case_results(
+            case,
+            [result("21", "semeynyy_kodeks_rf")],
+        )
+
+        self.assertTrue(evaluation["hit_top_1"])
+        self.assertEqual("secondary", evaluation["matched_relevance"])
+        self.assertFalse(evaluation["partial_match"])
+
+    def test_acceptable_source_is_partial_but_not_hit(self) -> None:
+        case = {
+            "id": "new_003",
+            "law": "Защита прав потребителей",
+            "question": "Вопрос",
+            "expected_sources": [
+                {
+                    "document_id": "gk_rf",
+                    "article_number": "475",
+                    "relevance": "acceptable",
+                    "reason": "Допустимая смежная норма",
+                }
+            ],
+        }
+
+        evaluation = evaluate_case_results(
+            case,
+            [result("475", "Гражданский кодекс Российской Федерации")],
+        )
+
+        self.assertFalse(evaluation["hit_top_1"])
+        self.assertFalse(evaluation["hit_top_5"])
+        self.assertIsNone(evaluation["rank"])
+        self.assertEqual("acceptable", evaluation["matched_relevance"])
+        self.assertTrue(evaluation["partial_match"])
+
+    def test_legacy_expected_article_numbers_remain_supported(self) -> None:
+        evaluation = evaluate_case_results(
+            CASE,
+            [result("80", "Трудовой кодекс Российской Федерации")],
+        )
+
+        self.assertTrue(evaluation["hit_top_1"])
+        self.assertEqual("primary", evaluation["matched_relevance"])
+
+    def test_question_type_metrics_group_scored_cases(self) -> None:
+        case = {
+            **CASE,
+            "question_type": "rights",
+        }
+        evaluation = evaluate_case_results(
+            case,
+            [result("80", "Трудовой кодекс Российской Федерации")],
+        )
+
+        metrics = calculate_question_type_metrics([evaluation])
+
+        self.assertEqual(1, metrics["rights"]["questions_count"])
+        self.assertEqual(1.0, metrics["rights"]["top_5_accuracy"])
+
+    def test_out_of_scope_case_is_not_strictly_evaluated(self) -> None:
+        case = {
+            "id": "neg_001",
+            "case_type": "out_of_scope",
+            "question": "Как оформить загранпаспорт?",
+            "expected_behavior": "no_answer",
+        }
+
+        evaluation = evaluate_case_results(case, [], top_k=20)
+
+        self.assertTrue(evaluation["not_evaluated"])
+        self.assertIsNone(evaluation["hit_top_5"])
+        self.assertIsNone(evaluation["reciprocal_rank"])
+
+    def test_mean_rank_is_average_of_found_ranks(self) -> None:
+        first = evaluate_case_results(
+            CASE,
+            [result("80", "Трудовой кодекс Российской Федерации")],
+        )
+        third = evaluate_case_results(
+            CASE,
+            [
+                result("77", "Трудовой кодекс Российской Федерации"),
+                result("81", "Трудовой кодекс Российской Федерации"),
+                result("80", "Трудовой кодекс Российской Федерации"),
+            ],
+        )
+
+        summary = calculate_summary_metrics([first, third])
+
+        self.assertEqual(2.0, summary["mean_rank"])
+
+    def test_document_recall_at_five_when_document_is_present(self) -> None:
+        evaluation = evaluate_case_results(
+            CASE,
+            [
+                result("10"),
+                result("11", "Трудовой кодекс Российской Федерации"),
+            ],
+        )
+
+        self.assertTrue(evaluation["document_hit_top_5"])
+
+    def test_wrong_document_at_one_when_first_result_is_another_law(self) -> None:
+        evaluation = evaluate_case_results(
+            CASE,
+            [
+                result("80", "Семейный кодекс Российской Федерации"),
+                result("80", "Трудовой кодекс Российской Федерации"),
+            ],
+        )
+
+        self.assertTrue(evaluation["wrong_document_top_1"])
+
     def test_transliterated_document_alias_matches_expected_document_id(self) -> None:
         case = {
             "id": "sk_002",

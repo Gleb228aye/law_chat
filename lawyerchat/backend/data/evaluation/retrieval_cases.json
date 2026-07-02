@@ -1,272 +1,992 @@
 [
-  {
-    "id": "tk_001",
-    "law": "Трудовой кодекс Российской Федерации",
-    "expected_document_id": "tk_rf",
-    "expected_document_title": "Трудовой кодекс Российской Федерации",
-    "expected_article_numbers": ["80"],
-    "question": "Как работник может уволиться по собственному желанию?",
-    "comment": "Ожидается статья 80 ТК РФ"
-  },
-  {
-    "id": "tk_002",
-    "law": "Трудовой кодекс Российской Федерации",
-    "expected_document_id": "tk_rf",
-    "expected_document_title": "Трудовой кодекс Российской Федерации",
-    "expected_article_numbers": ["77"],
-    "question": "Какие существуют общие основания прекращения трудового договора?",
-    "comment": "Ожидается статья 77 ТК РФ"
-  },
-  {
-    "id": "tk_003",
-    "law": "Трудовой кодекс Российской Федерации",
-    "expected_document_id": "tk_rf",
-    "expected_document_title": "Трудовой кодекс Российской Федерации",
-    "expected_article_numbers": ["81"],
-    "question": "В каких случаях работодатель может уволить работника?",
-    "comment": "Ожидается статья 81 ТК РФ"
-  },
-  {
-    "id": "tk_004",
-    "law": "Трудовой кодекс Российской Федерации",
-    "expected_document_id": "tk_rf",
-    "expected_document_title": "Трудовой кодекс Российской Федерации",
-    "expected_article_numbers": ["115"],
-    "question": "Сколько дней ежегодного оплачиваемого отпуска положено работнику?",
-    "comment": "Ожидается статья 115 ТК РФ"
-  },
-  {
-    "id": "tk_005",
-    "law": "Трудовой кодекс Российской Федерации",
-    "expected_document_id": "tk_rf",
-    "expected_document_title": "Трудовой кодекс Российской Федерации",
-    "expected_article_numbers": ["136"],
-    "question": "Как часто работодатель обязан выплачивать заработную плату?",
-    "comment": "Ожидается статья 136 ТК РФ"
-  },
-  {
-    "id": "uk_001",
-    "law": "Уголовный кодекс Российской Федерации",
-    "expected_document_id": "uk_rf",
-    "expected_document_title": "Уголовный кодекс Российской Федерации",
-    "expected_article_numbers": ["105"],
-    "question": "Какая ответственность предусмотрена за убийство?",
-    "comment": "Ожидается статья 105 УК РФ"
-  },
-  {
-    "id": "uk_002",
-    "law": "Уголовный кодекс Российской Федерации",
-    "expected_document_id": "uk_rf",
-    "expected_document_title": "Уголовный кодекс Российской Федерации",
-    "expected_article_numbers": ["158"],
-    "question": "Что признается кражей?",
-    "comment": "Ожидается статья 158 УК РФ"
-  },
-  {
-    "id": "uk_003",
-    "law": "Уголовный кодекс Российской Федерации",
-    "expected_document_id": "uk_rf",
-    "expected_document_title": "Уголовный кодекс Российской Федерации",
-    "expected_article_numbers": ["159"],
-    "question": "Что считается мошенничеством?",
-    "comment": "Ожидается статья 159 УК РФ"
-  },
-  {
-    "id": "uk_004",
-    "law": "Уголовный кодекс Российской Федерации",
-    "expected_document_id": "uk_rf",
-    "expected_document_title": "Уголовный кодекс Российской Федерации",
-    "expected_article_numbers": ["111"],
-    "question": "Какая ответственность установлена за умышленное причинение тяжкого вреда здоровью?",
-    "comment": "Ожидается статья 111 УК РФ"
-  },
-  {
-    "id": "uk_005",
-    "law": "Уголовный кодекс Российской Федерации",
-    "expected_document_id": "uk_rf",
-    "expected_document_title": "Уголовный кодекс Российской Федерации",
-    "expected_article_numbers": ["161"],
-    "question": "Что признается грабежом?",
-    "comment": "Ожидается статья 161 УК РФ"
-  },
-  {
-    "id": "gk_001",
-    "law": "Гражданский кодекс Российской Федерации",
-    "expected_document_id": "gk_rf_part_1",
-    "expected_document_title": "Гражданский кодекс Российской Федерации. Часть первая",
-    "expected_article_numbers": ["48"],
-    "question": "Что такое юридическое лицо?",
-    "comment": "Ожидается статья 48 ГК РФ, часть первая"
-  },
-  {
-    "id": "gk_002",
-    "law": "Гражданский кодекс Российской Федерации",
-    "expected_document_id": "gk_rf_part_1",
-    "expected_document_title": "Гражданский кодекс Российской Федерации. Часть первая",
-    "expected_article_numbers": ["153"],
-    "question": "Что признается сделкой?",
-    "comment": "Ожидается статья 153 ГК РФ, часть первая"
-  },
-  {
-    "id": "gk_003",
-    "law": "Гражданский кодекс Российской Федерации",
-    "expected_document_id": "gk_rf_part_1",
-    "expected_document_title": "Гражданский кодекс Российской Федерации. Часть первая",
-    "expected_article_numbers": ["420"],
-    "question": "Что такое договор по гражданскому законодательству?",
-    "comment": "Ожидается статья 420 ГК РФ, часть первая"
-  },
-  {
-    "id": "gk_004",
-    "law": "Гражданский кодекс Российской Федерации",
-    "expected_document_id": "gk_rf_part_1",
-    "expected_document_title": "Гражданский кодекс Российской Федерации. Часть первая",
-    "expected_article_numbers": ["8"],
-    "question": "Каковы основания возникновения гражданских прав и обязанностей?",
-    "comment": "Ожидается статья 8 ГК РФ, часть первая"
-  },
-  {
-    "id": "gk_005",
-    "law": "Гражданский кодекс Российской Федерации",
-    "expected_document_id": "gk_rf_part_1",
-    "expected_document_title": "Гражданский кодекс Российской Федерации. Часть первая",
-    "expected_article_numbers": ["209"],
-    "question": "Какие правомочия составляют право собственности?",
-    "comment": "Ожидается статья 209 ГК РФ, часть первая"
-  },
-  {
-    "id": "nk_001",
-    "law": "Налоговый кодекс Российской Федерации",
-    "expected_document_id": "nk_rf_part_1",
-    "expected_document_title": "Налоговый кодекс Российской Федерации. Часть первая",
-    "expected_article_numbers": ["23"],
-    "question": "Какие основные обязанности есть у налогоплательщика?",
-    "comment": "Ожидается статья 23 НК РФ, часть первая"
-  },
-  {
-    "id": "nk_002",
-    "law": "Налоговый кодекс Российской Федерации",
-    "expected_document_id": "nk_rf_part_1",
-    "expected_document_title": "Налоговый кодекс Российской Федерации. Часть первая",
-    "expected_article_numbers": ["21"],
-    "question": "Какие права есть у налогоплательщика?",
-    "comment": "Ожидается статья 21 НК РФ, часть первая"
-  },
-  {
-    "id": "nk_003",
-    "law": "Налоговый кодекс Российской Федерации",
-    "expected_document_id": "nk_rf_part_1",
-    "expected_document_title": "Налоговый кодекс Российской Федерации. Часть первая",
-    "expected_article_numbers": ["8"],
-    "question": "Что такое налог?",
-    "comment": "Ожидается статья 8 НК РФ, часть первая"
-  },
-  {
-    "id": "nk_004",
-    "law": "Налоговый кодекс Российской Федерации",
-    "expected_document_id": "nk_rf_part_1",
-    "expected_document_title": "Налоговый кодекс Российской Федерации. Часть первая",
-    "expected_article_numbers": ["12"],
-    "question": "Какие виды налогов и сборов устанавливаются в Российской Федерации?",
-    "comment": "Ожидается статья 12 НК РФ, часть первая"
-  },
-  {
-    "id": "nk_005",
-    "law": "Налоговый кодекс Российской Федерации",
-    "expected_document_id": "nk_rf_part_1",
-    "expected_document_title": "Налоговый кодекс Российской Федерации. Часть первая",
-    "expected_article_numbers": ["80"],
-    "question": "Что такое налоговая декларация?",
-    "comment": "Ожидается статья 80 НК РФ, часть первая"
-  },
-  {
-    "id": "sk_001",
-    "law": "Семейный кодекс Российской Федерации",
-    "expected_document_id": "sk_rf",
-    "expected_document_title": "Семейный кодекс Российской Федерации",
-    "expected_article_numbers": ["18", "21", "22"],
-    "question": "Как расторгается брак?",
-    "comment": "Ожидаются статьи 18, 21 или 22 СК РФ; проверить релевантность вручную"
-  },
-  {
-    "id": "sk_002",
-    "law": "Семейный кодекс Российской Федерации",
-    "expected_document_id": "sk_rf",
-    "expected_document_title": "Семейный кодекс Российской Федерации",
-    "expected_article_numbers": ["12"],
-    "question": "Какие условия необходимы для заключения брака?",
-    "comment": "Ожидается статья 12 СК РФ"
-  },
-  {
-    "id": "sk_003",
-    "law": "Семейный кодекс Российской Федерации",
-    "expected_document_id": "sk_rf",
-    "expected_document_title": "Семейный кодекс Российской Федерации",
-    "expected_article_numbers": ["13"],
-    "question": "С какого возраста можно вступить в брак?",
-    "comment": "Ожидается статья 13 СК РФ"
-  },
-  {
-    "id": "sk_004",
-    "law": "Семейный кодекс Российской Федерации",
-    "expected_document_id": "sk_rf",
-    "expected_document_title": "Семейный кодекс Российской Федерации",
-    "expected_article_numbers": ["63"],
-    "question": "Какие права и обязанности имеют родители по воспитанию и образованию детей?",
-    "comment": "Ожидается статья 63 СК РФ"
-  },
-  {
-    "id": "sk_005",
-    "law": "Семейный кодекс Российской Федерации",
-    "expected_document_id": "sk_rf",
-    "expected_document_title": "Семейный кодекс Российской Федерации",
-    "expected_article_numbers": ["80"],
-    "question": "Как родители обязаны содержать несовершеннолетних детей?",
-    "comment": "Ожидается статья 80 СК РФ"
-  },
-  {
-    "id": "zhk_001",
-    "law": "Жилищный кодекс Российской Федерации",
-    "expected_document_id": "zhk_rf",
-    "expected_document_title": "Жилищный кодекс Российской Федерации",
-    "expected_article_numbers": ["30"],
-    "question": "Какие права и обязанности есть у собственника жилого помещения?",
-    "comment": "Ожидается статья 30 ЖК РФ"
-  },
-  {
-    "id": "zhk_002",
-    "law": "Жилищный кодекс Российской Федерации",
-    "expected_document_id": "zhk_rf",
-    "expected_document_title": "Жилищный кодекс Российской Федерации",
-    "expected_article_numbers": ["15"],
-    "question": "Что признается жилым помещением?",
-    "comment": "Ожидается статья 15 ЖК РФ"
-  },
-  {
-    "id": "zhk_003",
-    "law": "Жилищный кодекс Российской Федерации",
-    "expected_document_id": "zhk_rf",
-    "expected_document_title": "Жилищный кодекс Российской Федерации",
-    "expected_article_numbers": ["19"],
-    "question": "Какие помещения входят в жилищный фонд?",
-    "comment": "Ожидается статья 19 ЖК РФ"
-  },
-  {
-    "id": "zhk_004",
-    "law": "Жилищный кодекс Российской Федерации",
-    "expected_document_id": "zhk_rf",
-    "expected_document_title": "Жилищный кодекс Российской Федерации",
-    "expected_article_numbers": ["36"],
-    "question": "Что относится к общему имуществу собственников в многоквартирном доме?",
-    "comment": "Ожидается статья 36 ЖК РФ"
-  },
-  {
-    "id": "zhk_005",
-    "law": "Жилищный кодекс Российской Федерации",
-    "expected_document_id": "zhk_rf",
-    "expected_document_title": "Жилищный кодекс Российской Федерации",
-    "expected_article_numbers": ["44"],
-    "question": "Как проводится общее собрание собственников помещений в многоквартирном доме?",
-    "comment": "Ожидается статья 44 ЖК РФ"
-  }
+    {
+        "id":  "tk_001",
+        "law":  "Трудовой кодекс Российской Федерации",
+        "question":  "Как работник может уволиться по собственному желанию?",
+        "question_type":  "procedure",
+        "difficulty":  "medium",
+        "expected_sources":  [
+                                 {
+                                     "document_id":  "tk_rf",
+                                     "article_number":  "80",
+                                     "relevance":  "primary",
+                                     "reason":  "Ожидается статья 80 ТК РФ"
+                                 }
+                             ],
+        "comment":  "Ожидается статья 80 ТК РФ"
+    },
+    {
+        "id":  "tk_002",
+        "law":  "Трудовой кодекс Российской Федерации",
+        "question":  "Какие существуют общие основания прекращения трудового договора?",
+        "question_type":  "grounds",
+        "difficulty":  "medium",
+        "expected_sources":  [
+                                 {
+                                     "document_id":  "tk_rf",
+                                     "article_number":  "77",
+                                     "relevance":  "primary",
+                                     "reason":  "Ожидается статья 77 ТК РФ"
+                                 }
+                             ],
+        "comment":  "Ожидается статья 77 ТК РФ"
+    },
+    {
+        "id":  "tk_003",
+        "law":  "Трудовой кодекс Российской Федерации",
+        "question":  "В каких случаях работодатель может уволить работника?",
+        "question_type":  "grounds",
+        "difficulty":  "medium",
+        "expected_sources":  [
+                                 {
+                                     "document_id":  "tk_rf",
+                                     "article_number":  "81",
+                                     "relevance":  "primary",
+                                     "reason":  "Ожидается статья 81 ТК РФ"
+                                 }
+                             ],
+        "comment":  "Ожидается статья 81 ТК РФ"
+    },
+    {
+        "id":  "tk_004",
+        "law":  "Трудовой кодекс Российской Федерации",
+        "question":  "Сколько дней ежегодного оплачиваемого отпуска положено работнику?",
+        "question_type":  "deadlines",
+        "difficulty":  "medium",
+        "expected_sources":  [
+                                 {
+                                     "document_id":  "tk_rf",
+                                     "article_number":  "115",
+                                     "relevance":  "primary",
+                                     "reason":  "Ожидается статья 115 ТК РФ"
+                                 }
+                             ],
+        "comment":  "Ожидается статья 115 ТК РФ"
+    },
+    {
+        "id":  "tk_005",
+        "law":  "Трудовой кодекс Российской Федерации",
+        "question":  "Как часто работодатель обязан выплачивать заработную плату?",
+        "question_type":  "deadlines",
+        "difficulty":  "medium",
+        "expected_sources":  [
+                                 {
+                                     "document_id":  "tk_rf",
+                                     "article_number":  "136",
+                                     "relevance":  "primary",
+                                     "reason":  "Ожидается статья 136 ТК РФ"
+                                 }
+                             ],
+        "comment":  "Ожидается статья 136 ТК РФ"
+    },
+    {
+        "id":  "uk_001",
+        "law":  "Уголовный кодекс Российской Федерации",
+        "question":  "Какая ответственность предусмотрена за убийство?",
+        "question_type":  "responsibility",
+        "difficulty":  "hard",
+        "expected_sources":  [
+                                 {
+                                     "document_id":  "uk_rf",
+                                     "article_number":  "105",
+                                     "relevance":  "primary",
+                                     "reason":  "Ожидается статья 105 УК РФ"
+                                 }
+                             ],
+        "comment":  "Ожидается статья 105 УК РФ"
+    },
+    {
+        "id":  "uk_002",
+        "law":  "Уголовный кодекс Российской Федерации",
+        "question":  "Что признается кражей?",
+        "question_type":  "definition",
+        "difficulty":  "easy",
+        "expected_sources":  [
+                                 {
+                                     "document_id":  "uk_rf",
+                                     "article_number":  "158",
+                                     "relevance":  "primary",
+                                     "reason":  "Ожидается статья 158 УК РФ"
+                                 }
+                             ],
+        "comment":  "Ожидается статья 158 УК РФ"
+    },
+    {
+        "id":  "uk_003",
+        "law":  "Уголовный кодекс Российской Федерации",
+        "question":  "Что считается мошенничеством?",
+        "question_type":  "definition",
+        "difficulty":  "easy",
+        "expected_sources":  [
+                                 {
+                                     "document_id":  "uk_rf",
+                                     "article_number":  "159",
+                                     "relevance":  "primary",
+                                     "reason":  "Ожидается статья 159 УК РФ"
+                                 }
+                             ],
+        "comment":  "Ожидается статья 159 УК РФ"
+    },
+    {
+        "id":  "uk_004",
+        "law":  "Уголовный кодекс Российской Федерации",
+        "question":  "Какая ответственность установлена за умышленное причинение тяжкого вреда здоровью?",
+        "question_type":  "responsibility",
+        "difficulty":  "hard",
+        "expected_sources":  [
+                                 {
+                                     "document_id":  "uk_rf",
+                                     "article_number":  "111",
+                                     "relevance":  "primary",
+                                     "reason":  "Ожидается статья 111 УК РФ"
+                                 }
+                             ],
+        "comment":  "Ожидается статья 111 УК РФ"
+    },
+    {
+        "id":  "uk_005",
+        "law":  "Уголовный кодекс Российской Федерации",
+        "question":  "Что признается грабежом?",
+        "question_type":  "definition",
+        "difficulty":  "easy",
+        "expected_sources":  [
+                                 {
+                                     "document_id":  "uk_rf",
+                                     "article_number":  "161",
+                                     "relevance":  "primary",
+                                     "reason":  "Ожидается статья 161 УК РФ"
+                                 }
+                             ],
+        "comment":  "Ожидается статья 161 УК РФ"
+    },
+    {
+        "id":  "gk_001",
+        "law":  "Гражданский кодекс Российской Федерации",
+        "question":  "Что такое юридическое лицо?",
+        "question_type":  "definition",
+        "difficulty":  "easy",
+        "expected_sources":  [
+                                 {
+                                     "document_id":  "gk_rf_part_1",
+                                     "article_number":  "48",
+                                     "relevance":  "primary",
+                                     "reason":  "Ожидается статья 48 ГК РФ, часть первая"
+                                 }
+                             ],
+        "comment":  "Ожидается статья 48 ГК РФ, часть первая"
+    },
+    {
+        "id":  "gk_002",
+        "law":  "Гражданский кодекс Российской Федерации",
+        "question":  "Что признается сделкой?",
+        "question_type":  "definition",
+        "difficulty":  "easy",
+        "expected_sources":  [
+                                 {
+                                     "document_id":  "gk_rf_part_1",
+                                     "article_number":  "153",
+                                     "relevance":  "primary",
+                                     "reason":  "Ожидается статья 153 ГК РФ, часть первая"
+                                 }
+                             ],
+        "comment":  "Ожидается статья 153 ГК РФ, часть первая"
+    },
+    {
+        "id":  "gk_003",
+        "law":  "Гражданский кодекс Российской Федерации",
+        "question":  "Что такое договор по гражданскому законодательству?",
+        "question_type":  "definition",
+        "difficulty":  "easy",
+        "expected_sources":  [
+                                 {
+                                     "document_id":  "gk_rf_part_1",
+                                     "article_number":  "420",
+                                     "relevance":  "primary",
+                                     "reason":  "Ожидается статья 420 ГК РФ, часть первая"
+                                 }
+                             ],
+        "comment":  "Ожидается статья 420 ГК РФ, часть первая"
+    },
+    {
+        "id":  "gk_004",
+        "law":  "Гражданский кодекс Российской Федерации",
+        "question":  "Каковы основания возникновения гражданских прав и обязанностей?",
+        "question_type":  "rights",
+        "difficulty":  "medium",
+        "expected_sources":  [
+                                 {
+                                     "document_id":  "gk_rf_part_1",
+                                     "article_number":  "8",
+                                     "relevance":  "primary",
+                                     "reason":  "Ожидается статья 8 ГК РФ, часть первая"
+                                 }
+                             ],
+        "comment":  "Ожидается статья 8 ГК РФ, часть первая"
+    },
+    {
+        "id":  "gk_005",
+        "law":  "Гражданский кодекс Российской Федерации",
+        "question":  "Какие правомочия составляют право собственности?",
+        "question_type":  "rights",
+        "difficulty":  "medium",
+        "expected_sources":  [
+                                 {
+                                     "document_id":  "gk_rf_part_1",
+                                     "article_number":  "209",
+                                     "relevance":  "primary",
+                                     "reason":  "Ожидается статья 209 ГК РФ, часть первая"
+                                 }
+                             ],
+        "comment":  "Ожидается статья 209 ГК РФ, часть первая"
+    },
+    {
+        "id":  "nk_001",
+        "law":  "Налоговый кодекс Российской Федерации",
+        "question":  "Какие основные обязанности есть у налогоплательщика?",
+        "question_type":  "rights",
+        "difficulty":  "medium",
+        "expected_sources":  [
+                                 {
+                                     "document_id":  "nk_rf_part_1",
+                                     "article_number":  "23",
+                                     "relevance":  "primary",
+                                     "reason":  "Ожидается статья 23 НК РФ, часть первая"
+                                 }
+                             ],
+        "comment":  "Ожидается статья 23 НК РФ, часть первая"
+    },
+    {
+        "id":  "nk_002",
+        "law":  "Налоговый кодекс Российской Федерации",
+        "question":  "Какие права есть у налогоплательщика?",
+        "question_type":  "rights",
+        "difficulty":  "medium",
+        "expected_sources":  [
+                                 {
+                                     "document_id":  "nk_rf_part_1",
+                                     "article_number":  "21",
+                                     "relevance":  "primary",
+                                     "reason":  "Ожидается статья 21 НК РФ, часть первая"
+                                 }
+                             ],
+        "comment":  "Ожидается статья 21 НК РФ, часть первая"
+    },
+    {
+        "id":  "nk_003",
+        "law":  "Налоговый кодекс Российской Федерации",
+        "question":  "Что такое налог?",
+        "question_type":  "definition",
+        "difficulty":  "easy",
+        "expected_sources":  [
+                                 {
+                                     "document_id":  "nk_rf_part_1",
+                                     "article_number":  "8",
+                                     "relevance":  "primary",
+                                     "reason":  "Ожидается статья 8 НК РФ, часть первая"
+                                 }
+                             ],
+        "comment":  "Ожидается статья 8 НК РФ, часть первая"
+    },
+    {
+        "id":  "nk_004",
+        "law":  "Налоговый кодекс Российской Федерации",
+        "question":  "Какие виды налогов и сборов устанавливаются в Российской Федерации?",
+        "question_type":  "definition",
+        "difficulty":  "easy",
+        "expected_sources":  [
+                                 {
+                                     "document_id":  "nk_rf_part_1",
+                                     "article_number":  "12",
+                                     "relevance":  "primary",
+                                     "reason":  "Ожидается статья 12 НК РФ, часть первая"
+                                 }
+                             ],
+        "comment":  "Ожидается статья 12 НК РФ, часть первая"
+    },
+    {
+        "id":  "nk_005",
+        "law":  "Налоговый кодекс Российской Федерации",
+        "question":  "Что такое налоговая декларация?",
+        "question_type":  "definition",
+        "difficulty":  "easy",
+        "expected_sources":  [
+                                 {
+                                     "document_id":  "nk_rf_part_1",
+                                     "article_number":  "80",
+                                     "relevance":  "primary",
+                                     "reason":  "Ожидается статья 80 НК РФ, часть первая"
+                                 }
+                             ],
+        "comment":  "Ожидается статья 80 НК РФ, часть первая"
+    },
+    {
+        "id":  "sk_001",
+        "law":  "Семейный кодекс Российской Федерации",
+        "question":  "Как расторгается брак?",
+        "question_type":  "procedure",
+        "difficulty":  "hard",
+        "expected_sources":  [
+                                 {
+                                     "document_id":  "sk_rf",
+                                     "article_number":  "18",
+                                     "relevance":  "primary",
+                                     "reason":  "Ожидаются статьи 18, 21 или 22 СК РФ; проверить релевантность вручную"
+                                 },
+                                 {
+                                     "document_id":  "sk_rf",
+                                     "article_number":  "21",
+                                     "relevance":  "secondary",
+                                     "reason":  "Дополнительная релевантная норма для ответа"
+                                 },
+                                 {
+                                     "document_id":  "sk_rf",
+                                     "article_number":  "22",
+                                     "relevance":  "secondary",
+                                     "reason":  "Дополнительная релевантная норма для ответа"
+                                 }
+                             ],
+        "comment":  "Ожидаются статьи 18, 21 или 22 СК РФ; проверить релевантность вручную"
+    },
+    {
+        "id":  "sk_002",
+        "law":  "Семейный кодекс Российской Федерации",
+        "question":  "Какие условия необходимы для заключения брака?",
+        "question_type":  "definition",
+        "difficulty":  "easy",
+        "expected_sources":  [
+                                 {
+                                     "document_id":  "sk_rf",
+                                     "article_number":  "12",
+                                     "relevance":  "primary",
+                                     "reason":  "Ожидается статья 12 СК РФ"
+                                 }
+                             ],
+        "comment":  "Ожидается статья 12 СК РФ"
+    },
+    {
+        "id":  "sk_003",
+        "law":  "Семейный кодекс Российской Федерации",
+        "question":  "С какого возраста можно вступить в брак?",
+        "question_type":  "deadlines",
+        "difficulty":  "medium",
+        "expected_sources":  [
+                                 {
+                                     "document_id":  "sk_rf",
+                                     "article_number":  "13",
+                                     "relevance":  "primary",
+                                     "reason":  "Ожидается статья 13 СК РФ"
+                                 }
+                             ],
+        "comment":  "Ожидается статья 13 СК РФ"
+    },
+    {
+        "id":  "sk_004",
+        "law":  "Семейный кодекс Российской Федерации",
+        "question":  "Какие права и обязанности имеют родители по воспитанию и образованию детей?",
+        "question_type":  "rights",
+        "difficulty":  "medium",
+        "expected_sources":  [
+                                 {
+                                     "document_id":  "sk_rf",
+                                     "article_number":  "63",
+                                     "relevance":  "primary",
+                                     "reason":  "Ожидается статья 63 СК РФ"
+                                 }
+                             ],
+        "comment":  "Ожидается статья 63 СК РФ"
+    },
+    {
+        "id":  "sk_005",
+        "law":  "Семейный кодекс Российской Федерации",
+        "question":  "Как родители обязаны содержать несовершеннолетних детей?",
+        "question_type":  "procedure",
+        "difficulty":  "medium",
+        "expected_sources":  [
+                                 {
+                                     "document_id":  "sk_rf",
+                                     "article_number":  "80",
+                                     "relevance":  "primary",
+                                     "reason":  "Ожидается статья 80 СК РФ"
+                                 }
+                             ],
+        "comment":  "Ожидается статья 80 СК РФ"
+    },
+    {
+        "id":  "zhk_001",
+        "law":  "Жилищный кодекс Российской Федерации",
+        "question":  "Какие права и обязанности есть у собственника жилого помещения?",
+        "question_type":  "rights",
+        "difficulty":  "medium",
+        "expected_sources":  [
+                                 {
+                                     "document_id":  "zhk_rf",
+                                     "article_number":  "30",
+                                     "relevance":  "primary",
+                                     "reason":  "Ожидается статья 30 ЖК РФ"
+                                 }
+                             ],
+        "comment":  "Ожидается статья 30 ЖК РФ"
+    },
+    {
+        "id":  "zhk_002",
+        "law":  "Жилищный кодекс Российской Федерации",
+        "question":  "Что признается жилым помещением?",
+        "question_type":  "definition",
+        "difficulty":  "easy",
+        "expected_sources":  [
+                                 {
+                                     "document_id":  "zhk_rf",
+                                     "article_number":  "15",
+                                     "relevance":  "primary",
+                                     "reason":  "Ожидается статья 15 ЖК РФ"
+                                 }
+                             ],
+        "comment":  "Ожидается статья 15 ЖК РФ"
+    },
+    {
+        "id":  "zhk_003",
+        "law":  "Жилищный кодекс Российской Федерации",
+        "question":  "Какие помещения входят в жилищный фонд?",
+        "question_type":  "definition",
+        "difficulty":  "easy",
+        "expected_sources":  [
+                                 {
+                                     "document_id":  "zhk_rf",
+                                     "article_number":  "19",
+                                     "relevance":  "primary",
+                                     "reason":  "Ожидается статья 19 ЖК РФ"
+                                 }
+                             ],
+        "comment":  "Ожидается статья 19 ЖК РФ"
+    },
+    {
+        "id":  "zhk_004",
+        "law":  "Жилищный кодекс Российской Федерации",
+        "question":  "Что относится к общему имуществу собственников в многоквартирном доме?",
+        "question_type":  "definition",
+        "difficulty":  "easy",
+        "expected_sources":  [
+                                 {
+                                     "document_id":  "zhk_rf",
+                                     "article_number":  "36",
+                                     "relevance":  "primary",
+                                     "reason":  "Ожидается статья 36 ЖК РФ"
+                                 }
+                             ],
+        "comment":  "Ожидается статья 36 ЖК РФ"
+    },
+    {
+        "id":  "zhk_005",
+        "law":  "Жилищный кодекс Российской Федерации",
+        "question":  "Как проводится общее собрание собственников помещений в многоквартирном доме?",
+        "question_type":  "procedure",
+        "difficulty":  "medium",
+        "expected_sources":  [
+                                 {
+                                     "document_id":  "zhk_rf",
+                                     "article_number":  "44",
+                                     "relevance":  "primary",
+                                     "reason":  "Ожидается статья 44 ЖК РФ"
+                                 }
+                             ],
+        "comment":  "Ожидается статья 44 ЖК РФ"
+    },
+    {
+        "id":  "tk_006",
+        "law":  "Трудовой кодекс Российской Федерации",
+        "question":  "Что такое трудовой договор и какие обязанности сторон он устанавливает?",
+        "question_type":  "rights",
+        "difficulty":  "medium",
+        "expected_sources":  [
+                                 {
+                                     "document_id":  "tk_rf",
+                                     "article_number":  "56",
+                                     "relevance":  "primary",
+                                     "reason":  "Ожидается статья 56 ТК РФ"
+                                 }
+                             ],
+        "comment":  "Ожидается статья 56 ТК РФ"
+    },
+    {
+        "id":  "tk_007",
+        "law":  "Трудовой кодекс Российской Федерации",
+        "question":  "Когда при приёме на работу можно установить испытательный срок?",
+        "question_type":  "deadlines",
+        "difficulty":  "medium",
+        "expected_sources":  [
+                                 {
+                                     "document_id":  "tk_rf",
+                                     "article_number":  "70",
+                                     "relevance":  "primary",
+                                     "reason":  "Ожидается статья 70 ТК РФ"
+                                 }
+                             ],
+        "comment":  "Ожидается статья 70 ТК РФ"
+    },
+    {
+        "id":  "tk_008",
+        "law":  "Трудовой кодекс Российской Федерации",
+        "question":  "Какова нормальная продолжительность рабочего времени в неделю?",
+        "question_type":  "deadlines",
+        "difficulty":  "medium",
+        "expected_sources":  [
+                                 {
+                                     "document_id":  "tk_rf",
+                                     "article_number":  "91",
+                                     "relevance":  "primary",
+                                     "reason":  "Ожидается статья 91 ТК РФ"
+                                 }
+                             ],
+        "comment":  "Ожидается статья 91 ТК РФ"
+    },
+    {
+        "id":  "tk_009",
+        "law":  "Трудовой кодекс Российской Федерации",
+        "question":  "В каком порядке работника привлекают к сверхурочной работе?",
+        "question_type":  "procedure",
+        "difficulty":  "medium",
+        "expected_sources":  [
+                                 {
+                                     "document_id":  "tk_rf",
+                                     "article_number":  "99",
+                                     "relevance":  "primary",
+                                     "reason":  "Ожидается статья 99 ТК РФ"
+                                 }
+                             ],
+        "comment":  "Ожидается статья 99 ТК РФ"
+    },
+    {
+        "id":  "tk_010",
+        "law":  "Трудовой кодекс Российской Федерации",
+        "question":  "Какие дисциплинарные взыскания работодатель вправе применить к работнику?",
+        "question_type":  "responsibility",
+        "difficulty":  "hard",
+        "expected_sources":  [
+                                 {
+                                     "document_id":  "tk_rf",
+                                     "article_number":  "192",
+                                     "relevance":  "primary",
+                                     "reason":  "Ожидается статья 192 ТК РФ"
+                                 }
+                             ],
+        "comment":  "Ожидается статья 192 ТК РФ"
+    },
+    {
+        "id":  "uk_006",
+        "law":  "Уголовный кодекс Российской Федерации",
+        "question":  "Какое деяние признаётся преступлением?",
+        "question_type":  "definition",
+        "difficulty":  "easy",
+        "expected_sources":  [
+                                 {
+                                     "document_id":  "uk_rf",
+                                     "article_number":  "14",
+                                     "relevance":  "primary",
+                                     "reason":  "Ожидается статья 14 УК РФ"
+                                 }
+                             ],
+        "comment":  "Ожидается статья 14 УК РФ"
+    },
+    {
+        "id":  "uk_007",
+        "law":  "Уголовный кодекс Российской Федерации",
+        "question":  "С какого возраста наступает уголовная ответственность?",
+        "question_type":  "responsibility",
+        "difficulty":  "hard",
+        "expected_sources":  [
+                                 {
+                                     "document_id":  "uk_rf",
+                                     "article_number":  "20",
+                                     "relevance":  "primary",
+                                     "reason":  "Ожидается статья 20 УК РФ"
+                                 }
+                             ],
+        "comment":  "Ожидается статья 20 УК РФ"
+    },
+    {
+        "id":  "uk_008",
+        "law":  "Уголовный кодекс Российской Федерации",
+        "question":  "Когда причинение вреда при необходимой обороне не считается преступлением?",
+        "question_type":  "special_case",
+        "difficulty":  "hard",
+        "expected_sources":  [
+                                 {
+                                     "document_id":  "uk_rf",
+                                     "article_number":  "37",
+                                     "relevance":  "primary",
+                                     "reason":  "Ожидается статья 37 УК РФ"
+                                 }
+                             ],
+        "comment":  "Ожидается статья 37 УК РФ"
+    },
+    {
+        "id":  "uk_009",
+        "law":  "Уголовный кодекс Российской Федерации",
+        "question":  "Что признаётся разбоем и какая ответственность за него предусмотрена?",
+        "question_type":  "responsibility",
+        "difficulty":  "hard",
+        "expected_sources":  [
+                                 {
+                                     "document_id":  "uk_rf",
+                                     "article_number":  "162",
+                                     "relevance":  "primary",
+                                     "reason":  "Ожидается статья 162 УК РФ"
+                                 }
+                             ],
+        "comment":  "Ожидается статья 162 УК РФ"
+    },
+    {
+        "id":  "uk_010",
+        "law":  "Уголовный кодекс Российской Федерации",
+        "question":  "Что такое уголовное наказание и для каких целей оно применяется?",
+        "question_type":  "definition",
+        "difficulty":  "easy",
+        "expected_sources":  [
+                                 {
+                                     "document_id":  "uk_rf",
+                                     "article_number":  "43",
+                                     "relevance":  "primary",
+                                     "reason":  "Ожидается статья 43 УК РФ"
+                                 }
+                             ],
+        "comment":  "Ожидается статья 43 УК РФ"
+    },
+    {
+        "id":  "gk_006",
+        "law":  "Гражданский кодекс Российской Федерации",
+        "question":  "Когда возникает и прекращается правоспособность гражданина?",
+        "question_type":  "deadlines",
+        "difficulty":  "medium",
+        "expected_sources":  [
+                                 {
+                                     "document_id":  "gk_rf_part_1",
+                                     "article_number":  "17",
+                                     "relevance":  "primary",
+                                     "reason":  "Ожидается статья 17 ГК РФ, часть первая"
+                                 }
+                             ],
+        "comment":  "Ожидается статья 17 ГК РФ, часть первая"
+    },
+    {
+        "id":  "gk_007",
+        "law":  "Гражданский кодекс Российской Федерации",
+        "question":  "В каких случаях осуществление гражданских прав считается злоупотреблением?",
+        "question_type":  "grounds",
+        "difficulty":  "medium",
+        "expected_sources":  [
+                                 {
+                                     "document_id":  "gk_rf_part_1",
+                                     "article_number":  "10",
+                                     "relevance":  "primary",
+                                     "reason":  "Ожидается статья 10 ГК РФ, часть первая"
+                                 }
+                             ],
+        "comment":  "Ожидается статья 10 ГК РФ, часть первая"
+    },
+    {
+        "id":  "gk_008",
+        "law":  "Гражданский кодекс Российской Федерации",
+        "question":  "Чем оспоримая сделка отличается от ничтожной?",
+        "question_type":  "special_case",
+        "difficulty":  "hard",
+        "expected_sources":  [
+                                 {
+                                     "document_id":  "gk_rf_part_1",
+                                     "article_number":  "166",
+                                     "relevance":  "primary",
+                                     "reason":  "Ожидается статья 166 ГК РФ, часть первая"
+                                 }
+                             ],
+        "comment":  "Ожидается статья 166 ГК РФ, часть первая"
+    },
+    {
+        "id":  "gk_009",
+        "law":  "Гражданский кодекс Российской Федерации",
+        "question":  "Что понимается под исковой давностью?",
+        "question_type":  "definition",
+        "difficulty":  "easy",
+        "expected_sources":  [
+                                 {
+                                     "document_id":  "gk_rf_part_1",
+                                     "article_number":  "195",
+                                     "relevance":  "primary",
+                                     "reason":  "Ожидается статья 195 ГК РФ, часть первая"
+                                 }
+                             ],
+        "comment":  "Ожидается статья 195 ГК РФ, часть первая"
+    },
+    {
+        "id":  "gk_010",
+        "law":  "Гражданский кодекс Российской Федерации",
+        "question":  "Как должны исполняться гражданско-правовые обязательства?",
+        "question_type":  "rights",
+        "difficulty":  "medium",
+        "expected_sources":  [
+                                 {
+                                     "document_id":  "gk_rf_part_1",
+                                     "article_number":  "309",
+                                     "relevance":  "primary",
+                                     "reason":  "Ожидается статья 309 ГК РФ, часть первая"
+                                 }
+                             ],
+        "comment":  "Ожидается статья 309 ГК РФ, часть первая"
+    },
+    {
+        "id":  "nk_006",
+        "law":  "Налоговый кодекс Российской Федерации",
+        "question":  "Какими правами наделены налоговые органы?",
+        "question_type":  "rights",
+        "difficulty":  "medium",
+        "expected_sources":  [
+                                 {
+                                     "document_id":  "nk_rf_part_1",
+                                     "article_number":  "31",
+                                     "relevance":  "primary",
+                                     "reason":  "Ожидается статья 31 НК РФ, часть первая"
+                                 }
+                             ],
+        "comment":  "Ожидается статья 31 НК РФ, часть первая"
+    },
+    {
+        "id":  "nk_007",
+        "law":  "Налоговый кодекс Российской Федерации",
+        "question":  "Как проводится камеральная налоговая проверка?",
+        "question_type":  "procedure",
+        "difficulty":  "medium",
+        "expected_sources":  [
+                                 {
+                                     "document_id":  "nk_rf_part_1",
+                                     "article_number":  "88",
+                                     "relevance":  "primary",
+                                     "reason":  "Ожидается статья 88 НК РФ, часть первая"
+                                 }
+                             ],
+        "comment":  "Ожидается статья 88 НК РФ, часть первая"
+    },
+    {
+        "id":  "nk_008",
+        "law":  "Налоговый кодекс Российской Федерации",
+        "question":  "Каков порядок проведения выездной налоговой проверки?",
+        "question_type":  "procedure",
+        "difficulty":  "medium",
+        "expected_sources":  [
+                                 {
+                                     "document_id":  "nk_rf_part_1",
+                                     "article_number":  "89",
+                                     "relevance":  "primary",
+                                     "reason":  "Ожидается статья 89 НК РФ, часть первая"
+                                 }
+                             ],
+        "comment":  "Ожидается статья 89 НК РФ, часть первая"
+    },
+    {
+        "id":  "nk_009",
+        "law":  "Налоговый кодекс Российской Федерации",
+        "question":  "Что признаётся налоговым правонарушением?",
+        "question_type":  "rights",
+        "difficulty":  "medium",
+        "expected_sources":  [
+                                 {
+                                     "document_id":  "nk_rf_part_1",
+                                     "article_number":  "106",
+                                     "relevance":  "primary",
+                                     "reason":  "Ожидается статья 106 НК РФ, часть первая"
+                                 }
+                             ],
+        "comment":  "Ожидается статья 106 НК РФ, часть первая"
+    },
+    {
+        "id":  "nk_010",
+        "law":  "Налоговый кодекс Российской Федерации",
+        "question":  "Какой срок давности установлен для привлечения к ответственности за налоговое правонарушение?",
+        "question_type":  "responsibility",
+        "difficulty":  "hard",
+        "expected_sources":  [
+                                 {
+                                     "document_id":  "nk_rf_part_1",
+                                     "article_number":  "113",
+                                     "relevance":  "primary",
+                                     "reason":  "Ожидается статья 113 НК РФ, часть первая"
+                                 }
+                             ],
+        "comment":  "Ожидается статья 113 НК РФ, часть первая"
+    },
+    {
+        "id":  "sk_006",
+        "law":  "Семейный кодекс Российской Федерации",
+        "question":  "Свободны ли супруги в выборе рода занятий и профессии?",
+        "question_type":  "definition",
+        "difficulty":  "easy",
+        "expected_sources":  [
+                                 {
+                                     "document_id":  "sk_rf",
+                                     "article_number":  "31",
+                                     "relevance":  "primary",
+                                     "reason":  "Ожидается статья 31 СК РФ"
+                                 }
+                             ],
+        "comment":  "Ожидается статья 31 СК РФ"
+    },
+    {
+        "id":  "sk_007",
+        "law":  "Семейный кодекс Российской Федерации",
+        "question":  "Какое имущество считается совместной собственностью супругов?",
+        "question_type":  "definition",
+        "difficulty":  "easy",
+        "expected_sources":  [
+                                 {
+                                     "document_id":  "sk_rf",
+                                     "article_number":  "34",
+                                     "relevance":  "primary",
+                                     "reason":  "Ожидается статья 34 СК РФ"
+                                 }
+                             ],
+        "comment":  "Ожидается статья 34 СК РФ"
+    },
+    {
+        "id":  "sk_008",
+        "law":  "Семейный кодекс Российской Федерации",
+        "question":  "Как производится раздел общего имущества супругов?",
+        "question_type":  "procedure",
+        "difficulty":  "medium",
+        "expected_sources":  [
+                                 {
+                                     "document_id":  "sk_rf",
+                                     "article_number":  "38",
+                                     "relevance":  "primary",
+                                     "reason":  "Ожидается статья 38 СК РФ"
+                                 }
+                             ],
+        "comment":  "Ожидается статья 38 СК РФ"
+    },
+    {
+        "id":  "sk_009",
+        "law":  "Семейный кодекс Российской Федерации",
+        "question":  "Какие права имеет ребёнок на проживание и воспитание в семье?",
+        "question_type":  "rights",
+        "difficulty":  "medium",
+        "expected_sources":  [
+                                 {
+                                     "document_id":  "sk_rf",
+                                     "article_number":  "54",
+                                     "relevance":  "primary",
+                                     "reason":  "Ожидается статья 54 СК РФ"
+                                 }
+                             ],
+        "comment":  "Ожидается статья 54 СК РФ"
+    },
+    {
+        "id":  "sk_010",
+        "law":  "Семейный кодекс Российской Федерации",
+        "question":  "По каким основаниям родителей могут лишить родительских прав?",
+        "question_type":  "grounds",
+        "difficulty":  "medium",
+        "expected_sources":  [
+                                 {
+                                     "document_id":  "sk_rf",
+                                     "article_number":  "69",
+                                     "relevance":  "primary",
+                                     "reason":  "Ожидается статья 69 СК РФ"
+                                 }
+                             ],
+        "comment":  "Ожидается статья 69 СК РФ"
+    },
+    {
+        "id":  "zhk_006",
+        "law":  "Жилищный кодекс Российской Федерации",
+        "question":  "Какие виды помещений относятся к жилым помещениям?",
+        "question_type":  "definition",
+        "difficulty":  "easy",
+        "expected_sources":  [
+                                 {
+                                     "document_id":  "zhk_rf",
+                                     "article_number":  "16",
+                                     "relevance":  "primary",
+                                     "reason":  "Ожидается статья 16 ЖК РФ"
+                                 }
+                             ],
+        "comment":  "Ожидается статья 16 ЖК РФ"
+    },
+    {
+        "id":  "zhk_007",
+        "law":  "Жилищный кодекс Российской Федерации",
+        "question":  "Какие права и обязанности есть у нанимателя по договору социального найма?",
+        "question_type":  "rights",
+        "difficulty":  "medium",
+        "expected_sources":  [
+                                 {
+                                     "document_id":  "zhk_rf",
+                                     "article_number":  "67",
+                                     "relevance":  "primary",
+                                     "reason":  "Ожидается статья 67 ЖК РФ"
+                                 }
+                             ],
+        "comment":  "Ожидается статья 67 ЖК РФ"
+    },
+    {
+        "id":  "zhk_008",
+        "law":  "Жилищный кодекс Российской Федерации",
+        "question":  "По каким основаниям расторгается договор социального найма жилого помещения?",
+        "question_type":  "grounds",
+        "difficulty":  "medium",
+        "expected_sources":  [
+                                 {
+                                     "document_id":  "zhk_rf",
+                                     "article_number":  "83",
+                                     "relevance":  "primary",
+                                     "reason":  "Ожидается статья 83 ЖК РФ"
+                                 }
+                             ],
+        "comment":  "Ожидается статья 83 ЖК РФ"
+    },
+    {
+        "id":  "zhk_009",
+        "law":  "Жилищный кодекс Российской Федерации",
+        "question":  "Какие способы управления многоквартирным домом могут выбрать собственники?",
+        "question_type":  "definition",
+        "difficulty":  "easy",
+        "expected_sources":  [
+                                 {
+                                     "document_id":  "zhk_rf",
+                                     "article_number":  "161",
+                                     "relevance":  "primary",
+                                     "reason":  "Ожидается статья 161 ЖК РФ"
+                                 }
+                             ],
+        "comment":  "Ожидается статья 161 ЖК РФ"
+    },
+    {
+        "id":  "zhk_010",
+        "law":  "Жилищный кодекс Российской Федерации",
+        "question":  "В какой срок вносится плата за жилое помещение и коммунальные услуги?",
+        "question_type":  "deadlines",
+        "difficulty":  "medium",
+        "expected_sources":  [
+                                 {
+                                     "document_id":  "zhk_rf",
+                                     "article_number":  "155",
+                                     "relevance":  "primary",
+                                     "reason":  "Ожидается статья 155 ЖК РФ"
+                                 }
+                             ],
+        "comment":  "Ожидается статья 155 ЖК РФ"
+    },
+    {
+        "id":  "neg_001",
+        "case_type":  "out_of_scope",
+        "question":  "Как оформить загранпаспорт?",
+        "expected_behavior":  "no_answer"
+    },
+    {
+        "id":  "neg_002",
+        "case_type":  "out_of_scope",
+        "question":  "Какая погода будет завтра?",
+        "expected_behavior":  "no_answer"
+    },
+    {
+        "id":  "neg_003",
+        "case_type":  "out_of_scope",
+        "question":  "Как лечить сильную головную боль?",
+        "expected_behavior":  "no_answer"
+    }
 ]

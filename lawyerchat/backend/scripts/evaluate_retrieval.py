@@ -10,6 +10,8 @@ from typing import Any
 
 
 ARTICLE_NUMBER_PATTERN = re.compile(r"\d+(?:\.\d+)*")
+SUCCESS_RELEVANCE = {"primary", "secondary"}
+ALLOWED_RELEVANCE = SUCCESS_RELEVANCE | {"acceptable"}
 
 DOCUMENT_ALIASES = {
     "tk_rf": (
@@ -36,6 +38,13 @@ DOCUMENT_ALIASES = {
         "налоговый кодекс российской федерации",
         "налоговый кодекс российской федерации часть первая",
         "налоговый кодекс российской федерации часть вторая",
+    ),
+    "zkpp_rf": (
+        "zkpp_rf",
+        "zakon_o_zashite_prav_potrebiteley",
+        "закон российской федерации о защите прав потребителей",
+        "закон о защите прав потребителей",
+        "защите прав потребителей",
     ),
     "sk_rf": (
         "sk_rf",
@@ -90,9 +99,14 @@ def _alias_key(value: object) -> str | None:
     return None
 
 
-def _expected_document_aliases(case: dict[str, Any]) -> set[str]:
-    expected_id = case.get("expected_document_id")
-    expected_title = case.get("expected_document_title")
+def _expected_document_aliases(
+    case: dict[str, Any],
+    expected_document_id: object | None = None,
+) -> set[str]:
+    expected_id = expected_document_id or case.get("expected_document_id")
+    expected_title = (
+        None if expected_document_id else case.get("expected_document_title")
+    )
     alias_key = _alias_key(expected_id) if expected_id else _alias_key(expected_title)
 
     if alias_key:
@@ -106,8 +120,15 @@ def _expected_document_aliases(case: dict[str, Any]) -> set[str]:
     return {normalized_fallback} if normalized_fallback else set()
 
 
-def _document_matches(case: dict[str, Any], result: dict[str, Any]) -> bool:
-    expected_aliases = _expected_document_aliases(case)
+def _document_matches(
+    case: dict[str, Any],
+    result: dict[str, Any],
+    expected_document_id: object | None = None,
+) -> bool:
+    expected_aliases = _expected_document_aliases(
+        case,
+        expected_document_id=expected_document_id,
+    )
     if not expected_aliases:
         return True
 
@@ -130,21 +151,82 @@ def _document_matches(case: dict[str, Any], result: dict[str, Any]) -> bool:
     )
 
 
-def is_expected_match(case: dict[str, Any], result: dict[str, Any]) -> bool:
-    expected_articles = {
-        article
-        for article in (
-            normalize_article_number(value)
-            for value in case.get("expected_article_numbers", [])
-        )
-        if article
-    }
-    result_article = normalize_article_number(result.get("article_number"))
+def expected_sources_for_case(case: dict[str, Any]) -> list[dict[str, str]]:
+    expected_sources = case.get("expected_sources")
+    if isinstance(expected_sources, list) and expected_sources:
+        normalized_sources = []
+        for source in expected_sources:
+            if not isinstance(source, dict):
+                continue
+            article = normalize_article_number(source.get("article_number"))
+            document_id = str(source.get("document_id") or "").strip()
+            relevance = str(source.get("relevance") or "").strip().casefold()
+            if article and document_id and relevance in ALLOWED_RELEVANCE:
+                normalized_sources.append(
+                    {
+                        "document_id": document_id,
+                        "article_number": article,
+                        "relevance": relevance,
+                        "reason": str(source.get("reason") or "").strip(),
+                    }
+                )
+        return normalized_sources
 
-    return (
-        bool(result_article)
-        and result_article in expected_articles
-        and _document_matches(case, result)
+    document_id = str(case.get("expected_document_id") or "").strip()
+    return [
+        {
+            "document_id": document_id,
+            "article_number": article,
+            "relevance": "primary",
+            "reason": "legacy expected_article_numbers",
+        }
+        for value in case.get("expected_article_numbers", [])
+        if (article := normalize_article_number(value))
+    ]
+
+
+def match_result_relevance(
+    case: dict[str, Any],
+    result: dict[str, Any],
+) -> str | None:
+    result_article = normalize_article_number(result.get("article_number"))
+    if not result_article:
+        return None
+
+    matched_relevances = []
+    for source in expected_sources_for_case(case):
+        if (
+            result_article == source["article_number"]
+            and _document_matches(
+                case,
+                result,
+                expected_document_id=source["document_id"],
+            )
+        ):
+            matched_relevances.append(source["relevance"])
+    for relevance in ("primary", "secondary", "acceptable"):
+        if relevance in matched_relevances:
+            return relevance
+    return None
+
+
+def is_expected_match(case: dict[str, Any], result: dict[str, Any]) -> bool:
+    return match_result_relevance(case, result) in SUCCESS_RELEVANCE
+
+
+def result_matches_expected_document(
+    case: dict[str, Any],
+    result: dict[str, Any],
+) -> bool:
+    sources = expected_sources_for_case(case)
+    return any(
+        _document_matches(
+            case,
+            result,
+            expected_document_id=source["document_id"],
+        )
+        for source in sources
+        if source["relevance"] in SUCCESS_RELEVANCE
     )
 
 
@@ -162,16 +244,54 @@ def evaluate_case_results(
     results: list[dict[str, Any]],
     top_k: int = 20,
 ) -> dict[str, Any]:
+    if case.get("case_type") == "out_of_scope":
+        return {
+            "case": case,
+            "top_results": [],
+            "matched_result": None,
+            "matched_relevance": None,
+            "partial_match": False,
+            "not_evaluated": True,
+            "hit_top_1": None,
+            "hit_top_3": None,
+            "hit_top_5": None,
+            "hit_top_10": None,
+            "hit_top_20": None,
+            "rank": None,
+            "reciprocal_rank": None,
+            "document_hit_top_5": None,
+            "wrong_document_top_1": None,
+            "best_similarity": None,
+            "best_distance": None,
+            "semantic_score": None,
+            "keyword_score": None,
+            "hybrid_score": None,
+        }
+
     rank: int | None = None
     matched_result: dict[str, Any] | None = None
+    matched_relevance: str | None = None
+    acceptable_result: dict[str, Any] | None = None
 
     for index, result in enumerate(results, start=1):
-        if is_expected_match(case, result):
+        relevance = match_result_relevance(case, result)
+        if relevance in SUCCESS_RELEVANCE:
             rank = index
             matched_result = result
+            matched_relevance = relevance
             break
+        if relevance == "acceptable" and acceptable_result is None:
+            acceptable_result = result
 
     first_result = results[0] if results else {}
+    document_hit_top_5 = any(
+        result_matches_expected_document(case, result)
+        for result in results[:5]
+    )
+    wrong_document_top_1 = bool(
+        first_result
+        and not result_matches_expected_document(case, first_result)
+    )
 
     def hit_at(depth: int) -> bool | None:
         if top_k < depth:
@@ -181,7 +301,13 @@ def evaluate_case_results(
     return {
         "case": case,
         "top_results": results,
-        "matched_result": matched_result,
+        "matched_result": matched_result or acceptable_result,
+        "matched_relevance": (
+            matched_relevance
+            or ("acceptable" if acceptable_result else None)
+        ),
+        "partial_match": matched_result is None and acceptable_result is not None,
+        "not_evaluated": False,
         "hit_top_1": hit_at(1),
         "hit_top_3": hit_at(3),
         "hit_top_5": hit_at(5),
@@ -189,6 +315,10 @@ def evaluate_case_results(
         "hit_top_20": hit_at(20),
         "rank": rank,
         "reciprocal_rank": 1.0 / rank if rank else 0.0,
+        "document_hit_top_5": (
+            document_hit_top_5 if top_k >= 5 else None
+        ),
+        "wrong_document_top_1": wrong_document_top_1,
         "best_similarity": _optional_float(first_result.get("similarity")),
         "best_distance": _optional_float(first_result.get("distance")),
         "semantic_score": _optional_float(first_result.get("semantic_score")),
@@ -200,28 +330,60 @@ def evaluate_case_results(
 def calculate_summary_metrics(
     evaluations: list[dict[str, Any]],
 ) -> dict[str, Any]:
-    count = len(evaluations)
+    scored_evaluations = [
+        item
+        for item in evaluations
+        if not item.get("not_evaluated")
+    ]
+    count = len(scored_evaluations)
     similarities = [
         item["best_similarity"]
-        for item in evaluations
+        for item in scored_evaluations
         if item.get("best_similarity") is not None
+    ]
+    ranks = [
+        item["rank"]
+        for item in scored_evaluations
+        if item.get("rank") is not None
+    ]
+    document_hits = [
+        item["document_hit_top_5"]
+        for item in scored_evaluations
+        if item.get("document_hit_top_5") is not None
+    ]
+    wrong_documents = [
+        item["wrong_document_top_1"]
+        for item in scored_evaluations
+        if item.get("wrong_document_top_1") is not None
     ]
 
     metrics: dict[str, Any] = {
         "questions_count": count,
+        "out_of_scope_count": len(evaluations) - count,
         "mrr": (
-            sum(item["reciprocal_rank"] for item in evaluations) / count
+            sum(item["reciprocal_rank"] for item in scored_evaluations) / count
             if count
             else 0.0
         ),
         "average_first_similarity": (
             sum(similarities) / len(similarities) if similarities else 0.0
         ),
+        "mean_rank": sum(ranks) / len(ranks) if ranks else None,
+        "document_recall_at_5": (
+            sum(bool(value) for value in document_hits) / len(document_hits)
+            if document_hits
+            else None
+        ),
+        "wrong_document_at_1": (
+            sum(bool(value) for value in wrong_documents) / len(wrong_documents)
+            if wrong_documents
+            else None
+        ),
     }
     for depth in (1, 3, 5, 10, 20):
         values = [
             item[f"hit_top_{depth}"]
-            for item in evaluations
+            for item in scored_evaluations
             if item.get(f"hit_top_{depth}") is not None
         ]
         metrics[f"hit_top_{depth}_count"] = (
@@ -240,11 +402,31 @@ def calculate_grouped_metrics(
 ) -> dict[str, dict[str, Any]]:
     grouped: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for evaluation in evaluations:
+        if evaluation.get("not_evaluated"):
+            continue
         grouped[evaluation["case"].get("law") or "Без названия"].append(evaluation)
 
     return {
         law: calculate_summary_metrics(items)
         for law, items in sorted(grouped.items())
+    }
+
+
+def calculate_question_type_metrics(
+    evaluations: list[dict[str, Any]],
+) -> dict[str, dict[str, Any]]:
+    grouped: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    for evaluation in evaluations:
+        if evaluation.get("not_evaluated"):
+            continue
+        question_type = (
+            evaluation["case"].get("question_type") or "unspecified"
+        )
+        grouped[str(question_type)].append(evaluation)
+
+    return {
+        question_type: calculate_summary_metrics(items)
+        for question_type, items in sorted(grouped.items())
     }
 
 
@@ -268,8 +450,34 @@ def load_cases(cases_path: Path) -> list[dict[str, Any]]:
             raise RuntimeError(f"Duplicate evaluation case id: {case_id}")
         if not str(case.get("question") or "").strip():
             raise RuntimeError(f"Evaluation case {case_id} has no question")
-        if not case.get("expected_article_numbers"):
-            raise RuntimeError(f"Evaluation case {case_id} has no expected articles")
+        if case.get("case_type") == "out_of_scope":
+            if case.get("expected_behavior") != "no_answer":
+                raise RuntimeError(
+                    f"Out-of-scope case {case_id} must expect no_answer"
+                )
+        else:
+            raw_sources = case.get("expected_sources")
+            if raw_sources is not None:
+                if not isinstance(raw_sources, list) or not raw_sources:
+                    raise RuntimeError(
+                        f"Evaluation case {case_id} has invalid expected_sources"
+                    )
+                for source in raw_sources:
+                    if (
+                        not isinstance(source, dict)
+                        or not str(source.get("document_id") or "").strip()
+                        or not normalize_article_number(
+                            source.get("article_number")
+                        )
+                        or source.get("relevance") not in ALLOWED_RELEVANCE
+                    ):
+                        raise RuntimeError(
+                            f"Evaluation case {case_id} has invalid expected source"
+                        )
+            if not expected_sources_for_case(case):
+                raise RuntimeError(
+                    f"Evaluation case {case_id} has no valid expected sources"
+                )
         seen_ids.add(case_id)
 
     return data
@@ -306,6 +514,17 @@ def _format_top_results(
     return " | ".join(lines) if lines else "Результатов нет"
 
 
+def _format_expected_sources(case: dict[str, Any]) -> str:
+    sources = expected_sources_for_case(case)
+    return "; ".join(
+        (
+            f"{source['document_id']} — ст. {source['article_number']} "
+            f"({source['relevance']})"
+        )
+        for source in sources
+    ) or "—"
+
+
 def write_csv_report(
     evaluations: list[dict[str, Any]],
     output_path: Path,
@@ -314,6 +533,10 @@ def write_csv_report(
     metadata = metadata or {}
     fieldnames = [
         "case_id",
+        "case_type",
+        "question_type",
+        "difficulty",
+        "expected_behavior",
         "retrieval_mode",
         "hybrid_semantic_weight",
         "hybrid_keyword_weight",
@@ -328,6 +551,10 @@ def write_csv_report(
         "hit_top_20",
         "rank",
         "reciprocal_rank",
+        "matched_relevance",
+        "partial_match",
+        "document_hit_top_5",
+        "wrong_document_top_1",
         "best_similarity",
         "best_distance",
         "semantic_score",
@@ -343,6 +570,10 @@ def write_csv_report(
             writer.writerow(
                 {
                     "case_id": case["id"],
+                    "case_type": case.get("case_type", "retrieval"),
+                    "question_type": case.get("question_type"),
+                    "difficulty": case.get("difficulty"),
+                    "expected_behavior": case.get("expected_behavior"),
                     "retrieval_mode": metadata.get("retrieval_mode"),
                     "hybrid_semantic_weight": (
                         metadata.get("hybrid_semantic_weight")
@@ -361,10 +592,7 @@ def write_csv_report(
                     ),
                     "law": case.get("law"),
                     "question": case.get("question"),
-                    "expected_articles": ", ".join(
-                        str(value)
-                        for value in case.get("expected_article_numbers", [])
-                    ),
+                    "expected_articles": _format_expected_sources(case),
                     "hit_top_1": evaluation["hit_top_1"],
                     "hit_top_3": evaluation["hit_top_3"],
                     "hit_top_5": evaluation["hit_top_5"],
@@ -372,6 +600,10 @@ def write_csv_report(
                     "hit_top_20": evaluation["hit_top_20"],
                     "rank": evaluation["rank"],
                     "reciprocal_rank": evaluation["reciprocal_rank"],
+                    "matched_relevance": evaluation["matched_relevance"],
+                    "partial_match": evaluation["partial_match"],
+                    "document_hit_top_5": evaluation["document_hit_top_5"],
+                    "wrong_document_top_1": evaluation["wrong_document_top_1"],
                     "best_similarity": evaluation["best_similarity"],
                     "best_distance": evaluation["best_distance"],
                     "semantic_score": evaluation["semantic_score"],
@@ -388,11 +620,13 @@ def write_json_report(
     grouped_metrics: dict[str, dict[str, Any]],
     metadata: dict[str, Any],
     output_path: Path,
+    question_type_metrics: dict[str, dict[str, Any]] | None = None,
 ) -> None:
     payload = {
         **metadata,
         "summary": summary,
         "metrics_by_law": grouped_metrics,
+        "metrics_by_question_type": question_type_metrics or {},
         "cases": evaluations,
     }
     output_path.write_text(
@@ -405,6 +639,12 @@ def _percent(value: float | None) -> str:
     if value is None:
         return "не рассчитывалось"
     return f"{value * 100:.1f}%"
+
+
+def _decimal(value: float | None) -> str:
+    if value is None:
+        return "не рассчитывалось"
+    return f"{value:.2f}"
 
 
 def _count_text(value: int | None) -> str:
@@ -420,54 +660,62 @@ def _conclusion_lines(
     grouped_metrics: dict[str, dict[str, Any]],
     evaluations: list[dict[str, Any]],
 ) -> list[str]:
-    available_depths = [
-        depth
-        for depth in (1, 3, 5, 10, 20)
-        if summary.get(f"top_{depth}_accuracy") is not None
-    ]
-    deepest_depth = max(available_depths) if available_depths else None
+    comparable_laws = {
+        law: metrics
+        for law, metrics in grouped_metrics.items()
+        if metrics.get("top_5_accuracy") is not None
+    }
     best_laws: list[str] = []
-    if grouped_metrics and deepest_depth is not None:
+    weakest_laws: list[str] = []
+    if comparable_laws:
         best_value = max(
-            metrics[f"top_{deepest_depth}_accuracy"]
-            for metrics in grouped_metrics.values()
-            if metrics[f"top_{deepest_depth}_accuracy"] is not None
+            metrics["top_5_accuracy"]
+            for metrics in comparable_laws.values()
+        )
+        weakest_value = min(
+            metrics["top_5_accuracy"]
+            for metrics in comparable_laws.values()
         )
         best_laws = [
             law
-            for law, metrics in grouped_metrics.items()
-            if metrics[f"top_{deepest_depth}_accuracy"] == best_value
+            for law, metrics in comparable_laws.items()
+            if metrics["top_5_accuracy"] == best_value
+        ]
+        weakest_laws = [
+            law
+            for law, metrics in comparable_laws.items()
+            if metrics["top_5_accuracy"] == weakest_value
         ]
 
-    failed_ids = [
-        item["case"]["id"]
-        for item in evaluations
-        if item["matched_result"] is None
-    ]
     lines = [
         f"Проверено вопросов: {summary['questions_count']}.",
         (
-            f"Успешно найдено: top-1 — {_count_text(summary['hit_top_1_count'])}, "
-            f"top-3 — {_count_text(summary['hit_top_3_count'])}, "
-            f"top-5 — {_count_text(summary['hit_top_5_count'])}, "
-            f"top-10 — {_count_text(summary['hit_top_10_count'])}, "
-            f"top-20 — {_count_text(summary['hit_top_20_count'])}."
+            f"Recall@5 составляет {_percent(summary['top_5_accuracy'])}, "
+            f"Recall@10 — {_percent(summary['top_10_accuracy'])}."
         ),
     ]
-    if best_laws and deepest_depth is not None:
+    if best_laws:
         lines.append(
-            f"Лучший результат top-{deepest_depth}: "
+            "Лучший результат по Recall@5: "
             + ", ".join(best_laws)
             + "."
         )
-    if failed_ids:
+    if weakest_laws:
         lines.append(
-            "Требуют проверки корпуса, разбиения или retrieval: "
-            + ", ".join(failed_ids)
+            "Наибольшего внимания требует: "
+            + ", ".join(weakest_laws)
             + "."
         )
+    wrong_document_rate = summary.get("wrong_document_at_1")
+    if wrong_document_rate:
+        lines.append(
+            "Есть подмешивание результатов из других законов на первой позиции: "
+            f"Wrong Document@1 = {_percent(wrong_document_rate)}."
+        )
     else:
-        lines.append("Все контрольные вопросы найдены в пределах запрошенного top-k.")
+        lines.append(
+            "Проблема подмешивания других законов на первой позиции не выявлена."
+        )
     return lines
 
 
@@ -476,61 +724,123 @@ def build_markdown_report(
     summary: dict[str, Any],
     grouped_metrics: dict[str, dict[str, Any]],
     metadata: dict[str, Any],
+    question_type_metrics: dict[str, dict[str, Any]] | None = None,
 ) -> str:
+    question_type_metrics = question_type_metrics or {}
     lines = [
         "# Отчёт о тестировании retrieval LawyerChat",
         "",
         f"- Дата и время запуска: {metadata['generated_at']}",
-        f"- Количество тестовых вопросов: {summary['questions_count']}",
+        f"- Количество оцениваемых вопросов: {summary['questions_count']}",
+        f"- Out-of-scope кейсов: {summary['out_of_scope_count']}",
         f"- top_k: {metadata['top_k']}",
         f"- Retrieval mode: `{metadata['retrieval_mode']}`",
         f"- Модель embeddings: `{metadata['embedding_model']}`",
-        f"- База данных доступна: {metadata['database_available']}",
-        f"- pgvector доступен: {metadata['pgvector_available']}",
-        "",
-        "## Итоговые метрики",
-        "",
-        f"- Top-1 accuracy: {_percent(summary['top_1_accuracy'])}",
-        f"- Top-3 accuracy: {_percent(summary['top_3_accuracy'])}",
-        f"- Top-5 accuracy: {_percent(summary['top_5_accuracy'])}",
-        f"- Top-10 accuracy: {_percent(summary['top_10_accuracy'])}",
-        f"- Top-20 accuracy: {_percent(summary['top_20_accuracy'])}",
-        f"- MRR: {summary['mrr']:.4f}",
-        (
-            "- Средняя similarity первого результата: "
-            f"{summary['average_first_similarity']:.4f}"
-        ),
-        "",
-        "## Метрики по законам",
-        "",
-        "| Закон | Количество вопросов | Top-1 | Top-3 | Top-5 | Top-10 | Top-20 | MRR |",
-        "|---|---:|---:|---:|---:|---:|---:|---:|",
     ]
     if metadata["retrieval_mode"] == "hybrid":
-        lines[7:7] = [
+        lines.append(
             (
                 "- Hybrid weights: "
                 f"semantic={metadata['hybrid_semantic_weight']}, "
                 f"keyword={metadata['hybrid_keyword_weight']}, "
                 f"metadata={metadata['hybrid_metadata_weight']}"
+            )
+        )
+    lines.extend(
+        [
+            f"- База данных доступна: {metadata['database_available']}",
+            f"- pgvector доступен: {metadata['pgvector_available']}",
+            "",
+            "## Итоговые метрики",
+            "",
+            "| Метрика | Значение |",
+            "|---|---:|",
+            f"| Recall@1 | {_percent(summary['top_1_accuracy'])} |",
+            f"| Recall@3 | {_percent(summary['top_3_accuracy'])} |",
+            f"| Recall@5 | {_percent(summary['top_5_accuracy'])} |",
+            f"| Recall@10 | {_percent(summary['top_10_accuracy'])} |",
+            f"| Recall@20 | {_percent(summary['top_20_accuracy'])} |",
+            f"| MRR | {summary['mrr']:.4f} |",
+            f"| Mean Rank | {_decimal(summary['mean_rank'])} |",
+            (
+                "| Document Recall@5 | "
+                f"{_percent(summary['document_recall_at_5'])} |"
+            ),
+            (
+                "| Wrong Document@1 | "
+                f"{_percent(summary['wrong_document_at_1'])} |"
             ),
             "",
+            "## Метрики по законам",
+            "",
+            (
+                "| Закон | Вопросов | Recall@1 | Recall@5 | Recall@10 | "
+                "Recall@20 | MRR | Mean Rank | Document Recall@5 | "
+                "Wrong Document@1 |"
+            ),
+            "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
         ]
+    )
 
     for law, metrics in grouped_metrics.items():
         lines.append(
             f"| {_markdown_cell(law)} | {metrics['questions_count']} | "
             f"{_percent(metrics['top_1_accuracy'])} | "
-            f"{_percent(metrics['top_3_accuracy'])} | "
             f"{_percent(metrics['top_5_accuracy'])} | "
             f"{_percent(metrics['top_10_accuracy'])} | "
-            f"{_percent(metrics['top_20_accuracy'])} | {metrics['mrr']:.4f} |"
+            f"{_percent(metrics['top_20_accuracy'])} | "
+            f"{metrics['mrr']:.4f} | "
+            f"{_decimal(metrics['mean_rank'])} | "
+            f"{_percent(metrics['document_recall_at_5'])} | "
+            f"{_percent(metrics['wrong_document_at_1'])} |"
         )
 
+    lines.extend(
+        [
+            "",
+            "## Метрики по типам вопросов",
+            "",
+            "| question_type | count | Recall@5 | Recall@10 | MRR |",
+            "|---|---:|---:|---:|---:|",
+        ]
+    )
+    for question_type, metrics in question_type_metrics.items():
+        lines.append(
+            f"| {_markdown_cell(question_type)} | "
+            f"{metrics['questions_count']} | "
+            f"{_percent(metrics['top_5_accuracy'])} | "
+            f"{_percent(metrics['top_10_accuracy'])} | "
+            f"{metrics['mrr']:.4f} |"
+        )
+
+    out_of_scope = [
+        item
+        for item in evaluations
+        if item.get("not_evaluated")
+    ]
+    lines.extend(["", "## Out-of-scope кейсы", ""])
+    if not out_of_scope:
+        lines.append("Out-of-scope кейсы отсутствуют.")
+    else:
+        lines.append(
+            "Эти вопросы перечислены отдельно и не входят в автоматические retrieval-метрики."
+        )
+        lines.append("")
+        for evaluation in out_of_scope:
+            case = evaluation["case"]
+            lines.append(
+                f"- `{case['id']}` — {case['question']} "
+                f"(ожидаемое поведение: {case.get('expected_behavior', '—')})"
+            )
+
     lines.extend(["", "## Ошибочные случаи", ""])
-    failed = [item for item in evaluations if item["matched_result"] is None]
+    failed = [
+        item
+        for item in evaluations
+        if item.get("hit_top_5") is not True
+    ]
     if not failed:
-        lines.append("Ошибочных случаев в пределах запрошенного top-k нет.")
+        lines.append("Правильная статья найдена в top-5 для всех вопросов.")
     else:
         for evaluation in failed:
             case = evaluation["case"]
@@ -539,11 +849,23 @@ def build_markdown_report(
                     f"### {case['id']}",
                     "",
                     f"- Вопрос: {case['question']}",
+                    f"- Тип вопроса: {case.get('question_type') or '—'}",
+                    f"- Сложность: {case.get('difficulty') or '—'}",
                     (
-                        "- Ожидаемые статьи: "
-                        + ", ".join(case.get("expected_article_numbers", []))
+                        "- Ожидаемые источники: "
+                        + _format_expected_sources(case)
                     ),
-                    f"- Найденные результаты: {_format_top_results(evaluation['top_results'])}",
+                    (
+                        "- Top-5 найденных результатов: "
+                        + _format_top_results(
+                            evaluation["top_results"],
+                            limit=5,
+                        )
+                    ),
+                    (
+                        "- Совпадение: "
+                        f"{evaluation.get('matched_relevance') or 'нет'}"
+                    ),
                     f"- Комментарий: {case.get('comment') or '—'}",
                     "",
                 ]
@@ -553,22 +875,32 @@ def build_markdown_report(
         [
             "## Подробные результаты",
             "",
-            "| id | Закон | Вопрос | Ожидаемые статьи | Позиция | top-10 найденных статей | Результат |",
-            "|---|---|---|---|---:|---|---|",
+            (
+                "| id | Закон | question_type | difficulty | Вопрос | "
+                "Ожидаемые источники | rank | top-5 | Результат |"
+            ),
+            "|---|---|---|---|---|---|---:|---|---|",
         ]
     )
     for evaluation in evaluations:
+        if evaluation.get("not_evaluated"):
+            continue
         case = evaluation["case"]
-        top_articles = ", ".join(
-            normalize_article_number(result.get("article_number")) or "—"
-            for result in evaluation["top_results"][:10]
+        top_results = "; ".join(
+            (
+                f"{_result_document_name(result)} — ст. "
+                f"{normalize_article_number(result.get('article_number')) or '—'}"
+            )
+            for result in evaluation["top_results"][:5]
         )
         lines.append(
             f"| {_markdown_cell(case['id'])} | {_markdown_cell(case.get('law', ''))} | "
+            f"{_markdown_cell(case.get('question_type', ''))} | "
+            f"{_markdown_cell(case.get('difficulty', ''))} | "
             f"{_markdown_cell(case.get('question', ''))} | "
-            f"{_markdown_cell(', '.join(case.get('expected_article_numbers', [])))} | "
-            f"{evaluation['rank'] or '—'} | {_markdown_cell(top_articles)} | "
-            f"{'успех' if evaluation['matched_result'] else 'ошибка'} |"
+            f"{_markdown_cell(_format_expected_sources(case))} | "
+            f"{evaluation['rank'] or '—'} | {_markdown_cell(top_results)} | "
+            f"{'успех' if evaluation.get('hit_top_5') else ('частично' if evaluation.get('partial_match') else 'ошибка')} |"
         )
 
     lines.extend(["", "## Вывод", ""])
@@ -586,7 +918,9 @@ def write_docx_report(
     grouped_metrics: dict[str, dict[str, Any]],
     metadata: dict[str, Any],
     output_path: Path,
+    question_type_metrics: dict[str, dict[str, Any]] | None = None,
 ) -> bool:
+    question_type_metrics = question_type_metrics or {}
     try:
         from docx import Document
     except ImportError:
@@ -596,7 +930,12 @@ def write_docx_report(
     document = Document()
     document.add_heading("Отчёт о тестировании retrieval LawyerChat", level=0)
     document.add_paragraph(f"Дата и время запуска: {metadata['generated_at']}")
-    document.add_paragraph(f"Количество вопросов: {summary['questions_count']}")
+    document.add_paragraph(
+        f"Количество оцениваемых вопросов: {summary['questions_count']}"
+    )
+    document.add_paragraph(
+        f"Out-of-scope кейсов: {summary['out_of_scope_count']}"
+    )
     document.add_paragraph(f"top_k: {metadata['top_k']}")
     document.add_paragraph(f"Retrieval mode: {metadata['retrieval_mode']}")
     if metadata["retrieval_mode"] == "hybrid":
@@ -618,35 +957,32 @@ def write_docx_report(
     summary_table.rows[0].cells[0].text = "Метрика"
     summary_table.rows[0].cells[1].text = "Значение"
     for label, value in (
-        ("Top-1 accuracy", _percent(summary["top_1_accuracy"])),
-        ("Top-3 accuracy", _percent(summary["top_3_accuracy"])),
-        ("Top-5 accuracy", _percent(summary["top_5_accuracy"])),
-        ("Top-10 accuracy", _percent(summary["top_10_accuracy"])),
-        ("Top-20 accuracy", _percent(summary["top_20_accuracy"])),
+        ("Recall@1", _percent(summary["top_1_accuracy"])),
+        ("Recall@3", _percent(summary["top_3_accuracy"])),
+        ("Recall@5", _percent(summary["top_5_accuracy"])),
+        ("Recall@10", _percent(summary["top_10_accuracy"])),
+        ("Recall@20", _percent(summary["top_20_accuracy"])),
         ("MRR", f"{summary['mrr']:.4f}"),
-        (
-            "Средняя similarity первого результата",
-            f"{summary['average_first_similarity']:.4f}",
-        ),
+        ("Mean Rank", _decimal(summary["mean_rank"])),
+        ("Document Recall@5", _percent(summary["document_recall_at_5"])),
+        ("Wrong Document@1", _percent(summary["wrong_document_at_1"])),
     ):
         cells = summary_table.add_row().cells
         cells[0].text = label
         cells[1].text = value
 
     document.add_heading("Метрики по законам", level=1)
-    law_table = document.add_table(rows=1, cols=8)
+    law_table = document.add_table(rows=1, cols=6)
     law_table.style = "Table Grid"
     for cell, value in zip(
         law_table.rows[0].cells,
         (
             "Закон",
             "Вопросы",
-            "Top-1",
-            "Top-3",
-            "Top-5",
-            "Top-10",
-            "Top-20",
-            "MRR",
+            "Recall@1",
+            "Recall@5",
+            "Recall@10",
+            "Recall@20",
         ),
     ):
         cell.text = value
@@ -656,32 +992,110 @@ def write_docx_report(
             law,
             str(metrics["questions_count"]),
             _percent(metrics["top_1_accuracy"]),
-            _percent(metrics["top_3_accuracy"]),
             _percent(metrics["top_5_accuracy"]),
             _percent(metrics["top_10_accuracy"]),
             _percent(metrics["top_20_accuracy"]),
+        )
+        for cell, value in zip(cells, values):
+            cell.text = value
+
+    document.add_paragraph("Дополнительные метрики по законам")
+    additional_table = document.add_table(rows=1, cols=5)
+    additional_table.style = "Table Grid"
+    for cell, value in zip(
+        additional_table.rows[0].cells,
+        (
+            "Закон",
+            "MRR",
+            "Mean Rank",
+            "Document Recall@5",
+            "Wrong Document@1",
+        ),
+    ):
+        cell.text = value
+    for law, metrics in grouped_metrics.items():
+        cells = additional_table.add_row().cells
+        values = (
+            law,
+            f"{metrics['mrr']:.4f}",
+            _decimal(metrics["mean_rank"]),
+            _percent(metrics["document_recall_at_5"]),
+            _percent(metrics["wrong_document_at_1"]),
+        )
+        for cell, value in zip(cells, values):
+            cell.text = value
+
+    document.add_heading("Метрики по типам вопросов", level=1)
+    type_table = document.add_table(rows=1, cols=5)
+    type_table.style = "Table Grid"
+    for cell, value in zip(
+        type_table.rows[0].cells,
+        ("question_type", "count", "Recall@5", "Recall@10", "MRR"),
+    ):
+        cell.text = value
+    for question_type, metrics in question_type_metrics.items():
+        cells = type_table.add_row().cells
+        values = (
+            question_type,
+            str(metrics["questions_count"]),
+            _percent(metrics["top_5_accuracy"]),
+            _percent(metrics["top_10_accuracy"]),
             f"{metrics['mrr']:.4f}",
         )
         for cell, value in zip(cells, values):
             cell.text = value
 
+    document.add_heading("Out-of-scope кейсы", level=1)
+    out_of_scope = [
+        item
+        for item in evaluations
+        if item.get("not_evaluated")
+    ]
+    if not out_of_scope:
+        document.add_paragraph("Out-of-scope кейсы отсутствуют.")
+    else:
+        document.add_paragraph(
+            "Эти вопросы не входят в автоматические retrieval-метрики."
+        )
+        for evaluation in out_of_scope:
+            case = evaluation["case"]
+            document.add_paragraph(
+                f"{case['id']}: {case['question']} "
+                f"(ожидаемое поведение: {case.get('expected_behavior', '—')})",
+                style="List Bullet",
+            )
+
     document.add_heading("Ошибочные случаи", level=1)
-    failed = [item for item in evaluations if item["matched_result"] is None]
+    failed = [
+        item
+        for item in evaluations
+        if item.get("hit_top_5") is not True
+    ]
     if not failed:
         document.add_paragraph(
-            "Ошибочных случаев в пределах запрошенного top-k нет."
+            "Правильная статья найдена в top-5 для всех вопросов."
         )
     for evaluation in failed:
         case = evaluation["case"]
         document.add_heading(case["id"], level=2)
         document.add_paragraph(f"Вопрос: {case['question']}")
         document.add_paragraph(
-            "Ожидаемые статьи: "
-            + ", ".join(case.get("expected_article_numbers", []))
+            f"Тип вопроса: {case.get('question_type') or '—'}"
         )
         document.add_paragraph(
-            "Найденные результаты: "
-            + _format_top_results(evaluation["top_results"])
+            f"Сложность: {case.get('difficulty') or '—'}"
+        )
+        document.add_paragraph(
+            "Ожидаемые источники: "
+            + _format_expected_sources(case)
+        )
+        document.add_paragraph(
+            "Top-5 найденных результатов: "
+            + _format_top_results(evaluation["top_results"], limit=5)
+        )
+        document.add_paragraph(
+            "Совпадение: "
+            + str(evaluation.get("matched_relevance") or "нет")
         )
         document.add_paragraph(f"Комментарий: {case.get('comment') or '—'}")
 
@@ -690,23 +1104,37 @@ def write_docx_report(
     details_table.style = "Table Grid"
     for cell, value in zip(
         details_table.rows[0].cells,
-        ("id", "Закон", "Вопрос", "Ожидалось", "Позиция", "top-10", "Результат"),
+        ("id", "Контекст", "Вопрос", "Ожидалось", "rank", "top-5", "Результат"),
     ):
         cell.text = value
     for evaluation in evaluations:
+        if evaluation.get("not_evaluated"):
+            continue
         case = evaluation["case"]
         top_articles = ", ".join(
             normalize_article_number(result.get("article_number")) or "—"
-            for result in evaluation["top_results"][:10]
+            for result in evaluation["top_results"][:5]
         )
         values = (
             case["id"],
-            case.get("law") or "",
+            (
+                f"{case.get('law') or ''}\n"
+                f"question_type: {case.get('question_type') or '—'}\n"
+                f"difficulty: {case.get('difficulty') or '—'}"
+            ),
             case.get("question") or "",
-            ", ".join(case.get("expected_article_numbers", [])),
+            _format_expected_sources(case),
             str(evaluation["rank"] or "—"),
             top_articles,
-            "успех" if evaluation["matched_result"] else "ошибка",
+            (
+                "успех"
+                if evaluation.get("hit_top_5")
+                else (
+                    "частично"
+                    if evaluation.get("partial_match")
+                    else "ошибка"
+                )
+            ),
         )
         cells = details_table.add_row().cells
         for cell, value in zip(cells, values):
@@ -759,7 +1187,11 @@ def run_evaluation(
         evaluations: list[dict[str, Any]] = []
         for index, case in enumerate(cases, start=1):
             print(f"[{index}/{len(cases)}] {case['id']}: {case['question']}")
-            results = search(case["question"], top_k=top_k)
+            results = (
+                []
+                if case.get("case_type") == "out_of_scope"
+                else search(case["question"], top_k=top_k)
+            )
             evaluations.append(
                 evaluate_case_results(case, results, top_k=top_k)
             )
@@ -768,8 +1200,10 @@ def run_evaluation(
 
     summary = calculate_summary_metrics(evaluations)
     grouped_metrics = calculate_grouped_metrics(evaluations)
+    question_type_metrics = calculate_question_type_metrics(evaluations)
     metadata = {
         "generated_at": datetime.now().astimezone().isoformat(timespec="seconds"),
+        "cases_count": len(cases),
         "top_k": top_k,
         "retrieval_mode": mode,
         "embedding_model": settings.embedding_model_name,
@@ -794,6 +1228,7 @@ def run_evaluation(
         grouped_metrics,
         metadata,
         paths["json"],
+        question_type_metrics,
     )
     paths["markdown"].write_text(
         build_markdown_report(
@@ -801,6 +1236,7 @@ def run_evaluation(
             summary,
             grouped_metrics,
             metadata,
+            question_type_metrics,
         ),
         encoding="utf-8",
     )
@@ -810,6 +1246,7 @@ def run_evaluation(
         grouped_metrics,
         metadata,
         paths["docx"],
+        question_type_metrics,
     )
     return paths
 
